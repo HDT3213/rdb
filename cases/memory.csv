@@ -1,0 +1,7 @@
+database,key,type,size,size_readable,element_count
+0,s,string,19,19B,0
+0,hash,hash,64,64B,2
+0,list,list,123,123B,6
+0,zset,zset,57,57B,2
+0,large,string,2056,2K,0
+0,set,set,39,39B,2

@@ -1,6 +1,6 @@
-{"db":0,"key":"int_value","expiration":null,"value":"123"}
-{"db":0,"key":"ascii","expiration":null,"value":"\u0000! ~0\n\t\rAb"}
-{"db":0,"key":"bin","expiration":null,"value":"\u0000$ ~0\ufffd\n\ufffd\t\ufffd\rAb"}
-{"db":0,"key":"printable","expiration":null,"value":"!+ Ab^~"}
-{"db":0,"key":"378","expiration":null,"value":"int_key_name"}
-{"db":0,"key":"utf8","expiration":null,"value":"בדיקה𐀏123עברית"}
+{"db":0,"key":"int_value","size":12,"value":"123"}
+{"db":0,"key":"ascii","size":17,"value":"\u0000! ~0\n\t\rAb"}
+{"db":0,"key":"bin","size":19,"value":"\u0000$ ~0\ufffd\n\ufffd\t\ufffd\rAb"}
+{"db":0,"key":"printable","size":18,"value":"!+ Ab^~"}
+{"db":0,"key":"378","size":16,"value":"int_key_name"}
+{"db":0,"key":"utf8","size":33,"value":"בדיקה𐀏123עברית"}

@@ -1,1 +1,1 @@
-{"db":0,"key":"zipmap_compresses_easily","expiration":null,"hash":{"a":"aa","aa":"aaaa","aaaaa":"aaaaaaaaaaaaaa"}}
+{"db":0,"key":"zipmap_compresses_easily","size":60,"hash":{"a":"aa","aa":"aaaa","aaaaa":"aaaaaaaaaaaaaa"}}
