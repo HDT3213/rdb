@@ -1,5 +1,5 @@
-// Package parser is RDB parser core
-package parser
+// Package core is RDB core core
+package core
 
 import (
 	"bufio"
@@ -13,16 +13,16 @@ import (
 	"time"
 )
 
-// Parser is an instance of rdb parsing process
-type Parser struct {
+// Decoder is an instance of rdb parsing process
+type Decoder struct {
 	input     *bufio.Reader
 	readCount int
 	buffer    []byte
 }
 
-// NewParser create a new RDB parser
-func NewParser(reader io.Reader) *Parser {
-	parser := new(Parser)
+// NewDecoder create a new RDB core
+func NewDecoder(reader io.Reader) *Decoder {
+	parser := new(Decoder)
 	parser.input = bufio.NewReader(reader)
 	parser.buffer = make([]byte, 8)
 	return parser
@@ -66,9 +66,9 @@ const (
 )
 
 // checkHeader checks whether input has valid RDB file header
-func (p *Parser) checkHeader() error {
+func (dec *Decoder) checkHeader() error {
 	header := make([]byte, 9)
-	err := p.readFull(header)
+	err := dec.readFull(header)
 	if err == io.EOF {
 		return errors.New("empty file")
 	}
@@ -88,10 +88,10 @@ func (p *Parser) checkHeader() error {
 	return nil
 }
 
-func (p *Parser) readObject(flag byte, base *model.BaseObject) (model.RedisObject, error) {
+func (dec *Decoder) readObject(flag byte, base *model.BaseObject) (model.RedisObject, error) {
 	switch flag {
 	case typeString:
-		bs, err := p.readString()
+		bs, err := dec.readString()
 		if err != nil {
 			return nil, err
 		}
@@ -100,7 +100,7 @@ func (p *Parser) readObject(flag byte, base *model.BaseObject) (model.RedisObjec
 			Value:      bs,
 		}, nil
 	case typeList:
-		list, err := p.readList()
+		list, err := dec.readList()
 		if err != nil {
 			return nil, err
 		}
@@ -109,7 +109,7 @@ func (p *Parser) readObject(flag byte, base *model.BaseObject) (model.RedisObjec
 			Values:     list,
 		}, nil
 	case typeSet:
-		set, err := p.readSet()
+		set, err := dec.readSet()
 		if err != nil {
 			return nil, err
 		}
@@ -118,7 +118,7 @@ func (p *Parser) readObject(flag byte, base *model.BaseObject) (model.RedisObjec
 			Members:    set,
 		}, nil
 	case typeSetIntSet:
-		set, err := p.readIntSet()
+		set, err := dec.readIntSet()
 		if err != nil {
 			return nil, err
 		}
@@ -127,7 +127,7 @@ func (p *Parser) readObject(flag byte, base *model.BaseObject) (model.RedisObjec
 			Members:    set,
 		}, nil
 	case typeHash:
-		hash, err := p.readHashMap()
+		hash, err := dec.readHashMap()
 		if err != nil {
 			return nil, err
 		}
@@ -136,7 +136,7 @@ func (p *Parser) readObject(flag byte, base *model.BaseObject) (model.RedisObjec
 			Hash:       hash,
 		}, nil
 	case typeListZipList:
-		list, err := p.readZipList()
+		list, err := dec.readZipList()
 		if err != nil {
 			return nil, err
 		}
@@ -145,7 +145,7 @@ func (p *Parser) readObject(flag byte, base *model.BaseObject) (model.RedisObjec
 			Values:     list,
 		}, nil
 	case typeListQuickList:
-		list, err := p.readQuickList()
+		list, err := dec.readQuickList()
 		if err != nil {
 			return nil, err
 		}
@@ -154,7 +154,7 @@ func (p *Parser) readObject(flag byte, base *model.BaseObject) (model.RedisObjec
 			Values:     list,
 		}, nil
 	case typeHashZipMap:
-		m, err := p.readZipMapHash()
+		m, err := dec.readZipMapHash()
 		if err != nil {
 			return nil, err
 		}
@@ -163,7 +163,7 @@ func (p *Parser) readObject(flag byte, base *model.BaseObject) (model.RedisObjec
 			Hash:       m,
 		}, nil
 	case typeHashZipList:
-		m, err := p.readZipListHash()
+		m, err := dec.readZipListHash()
 		if err != nil {
 			return nil, err
 		}
@@ -172,7 +172,7 @@ func (p *Parser) readObject(flag byte, base *model.BaseObject) (model.RedisObjec
 			Hash:       m,
 		}, nil
 	case typeZset:
-		entries, err := p.readZSet(false)
+		entries, err := dec.readZSet(false)
 		if err != nil {
 			return nil, err
 		}
@@ -181,7 +181,7 @@ func (p *Parser) readObject(flag byte, base *model.BaseObject) (model.RedisObjec
 			Entries:    entries,
 		}, nil
 	case typeZset2:
-		entries, err := p.readZSet(true)
+		entries, err := dec.readZSet(true)
 		if err != nil {
 			return nil, err
 		}
@@ -190,7 +190,7 @@ func (p *Parser) readObject(flag byte, base *model.BaseObject) (model.RedisObjec
 			Entries:    entries,
 		}, nil
 	case typeZsetZipList:
-		entries, err := p.readZipListZSet()
+		entries, err := dec.readZipListZSet()
 		if err != nil {
 			return nil, err
 		}
@@ -202,43 +202,43 @@ func (p *Parser) readObject(flag byte, base *model.BaseObject) (model.RedisObjec
 	return nil, fmt.Errorf("unknown type flag: %b", flag)
 }
 
-func (p *Parser) parse(cb func(object model.RedisObject) bool) error {
+func (dec *Decoder) parse(cb func(object model.RedisObject) bool) error {
 	var dbIndex int
 	var expireMs int64
 	for {
-		b, err := p.readByte()
+		b, err := dec.readByte()
 		if err != nil {
 			return err
 		}
 		if b == opCodeEOF {
 			break
 		} else if b == opCodeSelectDB {
-			dbIndex64, _, err := p.readLength()
+			dbIndex64, _, err := dec.readLength()
 			if err != nil {
 				return err
 			}
 			dbIndex = int(dbIndex64)
 			continue
 		} else if b == opCodeExpireTime {
-			err = p.readFull(p.buffer)
+			err = dec.readFull(dec.buffer)
 			if err != nil {
 				return err
 			}
-			expireMs = int64(binary.LittleEndian.Uint64(p.buffer)) * 1000
+			expireMs = int64(binary.LittleEndian.Uint64(dec.buffer)) * 1000
 			continue
 		} else if b == opCodeExpireTimeMs {
-			err = p.readFull(p.buffer)
+			err = dec.readFull(dec.buffer)
 			if err != nil {
 				return err
 			}
-			expireMs = int64(binary.LittleEndian.Uint64(p.buffer))
+			expireMs = int64(binary.LittleEndian.Uint64(dec.buffer))
 			continue
 		} else if b == opCodeResizeDB {
-			_, _, err := p.readLength()
+			_, _, err := dec.readLength()
 			if err != nil {
 				return err
 			}
-			_, _, err = p.readLength()
+			_, _, err = dec.readLength()
 			if err != nil {
 				err = errors.New("Parse Aux value failed: " + err.Error())
 				break
@@ -246,11 +246,11 @@ func (p *Parser) parse(cb func(object model.RedisObject) bool) error {
 			// todo
 			continue
 		} else if b == opCodeAux {
-			_, err := p.readString()
+			_, err := dec.readString()
 			if err != nil {
 				return err
 			}
-			_, err = p.readString()
+			_, err = dec.readString()
 			if err != nil {
 				err = errors.New("Parse Aux value failed: " + err.Error())
 				break
@@ -258,22 +258,22 @@ func (p *Parser) parse(cb func(object model.RedisObject) bool) error {
 			// todo: return aux
 			continue
 		} else if b == opCodeFreq {
-			_, err = p.readByte()
+			_, err = dec.readByte()
 			if err != nil {
 				return err
 			}
 		} else if b == opCodeIdle {
-			_, _, err = p.readLength()
+			_, _, err = dec.readLength()
 			if err != nil {
 				return err
 			}
 		}
-		begPos := p.readCount
-		key, err := p.readString()
+		begPos := dec.readCount
+		key, err := dec.readString()
 		if err != nil {
 			return err
 		}
-		keySize := p.readCount - begPos
+		keySize := dec.readCount - begPos
 		base := &model.BaseObject{
 			DB:  dbIndex,
 			Key: string(key),
@@ -282,12 +282,12 @@ func (p *Parser) parse(cb func(object model.RedisObject) bool) error {
 			expiration := time.Unix(0, expireMs*int64(time.Millisecond))
 			base.Expiration = &expiration
 		}
-		begPos = p.readCount
-		obj, err := p.readObject(b, base)
+		begPos = dec.readCount
+		obj, err := dec.readObject(b, base)
 		if err != nil {
 			return err
 		}
-		obj.SetSize(p.readCount - begPos + keySize)
+		obj.SetSize(dec.readCount - begPos + keySize)
 		toBeContinued := cb(obj)
 		if !toBeContinued {
 			break
@@ -297,10 +297,10 @@ func (p *Parser) parse(cb func(object model.RedisObject) bool) error {
 }
 
 // Parse parses rdb and callback
-func (p *Parser) Parse(cb func(object model.RedisObject) bool) error {
-	err := p.checkHeader()
+func (dec *Decoder) Parse(cb func(object model.RedisObject) bool) error {
+	err := dec.checkHeader()
 	if err != nil {
 		return err
 	}
-	return p.parse(cb)
+	return dec.parse(cb)
 }

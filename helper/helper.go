@@ -3,8 +3,8 @@ package helper
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/hdt3213/rdb/core"
 	"github.com/hdt3213/rdb/model"
-	"github.com/hdt3213/rdb/parser"
 	"os"
 )
 
@@ -24,7 +24,7 @@ func ToJsons(rdbFilename string, jsonFilename string) error {
 	defer func() {
 		_ = jsonFile.Close()
 	}()
-	p := parser.NewParser(rdbFile)
+	p := core.NewDecoder(rdbFile)
 	return p.Parse(func(object model.RedisObject) bool {
 		data, err := json.Marshal(object)
 		if err != nil {

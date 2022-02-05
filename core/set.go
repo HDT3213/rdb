@@ -1,4 +1,4 @@
-package parser
+package core
 
 import (
 	"encoding/binary"
@@ -6,15 +6,15 @@ import (
 	"strconv"
 )
 
-func (p *Parser) readSet() ([][]byte, error) {
-	size64, _, err := p.readLength()
+func (dec *Decoder) readSet() ([][]byte, error) {
+	size64, _, err := dec.readLength()
 	if err != nil {
 		return nil, err
 	}
 	size := int(size64)
 	values := make([][]byte, 0, size)
 	for i := 0; i < size; i++ {
-		val, err := p.readString()
+		val, err := dec.readString()
 		if err != nil {
 			return nil, err
 		}
@@ -23,9 +23,9 @@ func (p *Parser) readSet() ([][]byte, error) {
 	return values, nil
 }
 
-func (p *Parser) readIntSet() (result [][]byte, err error) {
+func (dec *Decoder) readIntSet() (result [][]byte, err error) {
 	var buf []byte
-	buf, err = p.readString()
+	buf, err = dec.readString()
 	if err != nil {
 		return nil, err
 	}

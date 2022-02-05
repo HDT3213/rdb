@@ -3,8 +3,8 @@ package helper
 import (
 	"encoding/csv"
 	"fmt"
+	"github.com/hdt3213/rdb/core"
 	"github.com/hdt3213/rdb/model"
-	"github.com/hdt3213/rdb/parser"
 	"os"
 	"strconv"
 )
@@ -30,7 +30,7 @@ func MemoryProfile(rdbFilename string, csvFilename string) error {
 		return fmt.Errorf("write csv failed: %v", err)
 	}
 	csvWriter := csv.NewWriter(csvFile)
-	p := parser.NewParser(rdbFile)
+	p := core.NewDecoder(rdbFile)
 	defer csvWriter.Flush()
 	return p.Parse(func(object model.RedisObject) bool {
 		err = csvWriter.Write([]string{

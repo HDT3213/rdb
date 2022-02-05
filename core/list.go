@@ -1,4 +1,4 @@
-package parser
+package core
 
 import (
 	"encoding/binary"
@@ -21,15 +21,15 @@ const (
 	zipBigPrevLen = 0xfe
 )
 
-func (p *Parser) readList() ([][]byte, error) {
-	size64, _, err := p.readLength()
+func (dec *Decoder) readList() ([][]byte, error) {
+	size64, _, err := dec.readLength()
 	if err != nil {
 		return nil, err
 	}
 	size := int(size64)
 	values := make([][]byte, 0, size)
 	for i := 0; i < size; i++ {
-		val, err := p.readString()
+		val, err := dec.readString()
 		if err != nil {
 			return nil, err
 		}
@@ -38,8 +38,8 @@ func (p *Parser) readList() ([][]byte, error) {
 	return values, nil
 }
 
-func (p *Parser) readZipList() ([][]byte, error) {
-	buf, err := p.readString()
+func (dec *Decoder) readZipList() ([][]byte, error) {
+	buf, err := dec.readString()
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +47,7 @@ func (p *Parser) readZipList() ([][]byte, error) {
 	size := readZipListLength(buf, &cursor)
 	entries := make([][]byte, 0, size)
 	for i := 0; i < size; i++ {
-		entry, err := p.readZipListEntry(buf, &cursor)
+		entry, err := dec.readZipListEntry(buf, &cursor)
 		if err != nil {
 			return nil, err
 		}
@@ -56,7 +56,7 @@ func (p *Parser) readZipList() ([][]byte, error) {
 	return entries, nil
 }
 
-func (p *Parser) readZipListEntry(buf []byte, cursor *int) (result []byte, err error) {
+func (dec *Decoder) readZipListEntry(buf []byte, cursor *int) (result []byte, err error) {
 	defer func() {
 		if err2 := recover(); err2 != nil {
 			err = fmt.Errorf("panic: %v", err)
@@ -141,14 +141,14 @@ func (p *Parser) readZipListEntry(buf []byte, cursor *int) (result []byte, err e
 	return nil, fmt.Errorf("unknown entry header")
 }
 
-func (p *Parser) readQuickList() ([][]byte, error) {
-	size, _, err := p.readLength()
+func (dec *Decoder) readQuickList() ([][]byte, error) {
+	size, _, err := dec.readLength()
 	if err != nil {
 		return nil, err
 	}
 	entries := make([][]byte, 0)
 	for i := 0; i < int(size); i++ {
-		page, err := p.readZipList()
+		page, err := dec.readZipList()
 		if err != nil {
 			return nil, err
 		}

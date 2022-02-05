@@ -1,4 +1,4 @@
-package parser
+package core
 
 import (
 	"encoding/binary"
@@ -40,20 +40,20 @@ func readZipListLength(buf []byte, cursor *int) int {
 	return size
 }
 
-func (p *Parser) readByte() (byte, error) {
-	b, err := p.input.ReadByte()
+func (dec *Decoder) readByte() (byte, error) {
+	b, err := dec.input.ReadByte()
 	if err != nil {
 		return 0, err
 	}
-	p.readCount++
+	dec.readCount++
 	return b, nil
 }
 
-func (p *Parser) readFull(buf []byte) error {
-	n, err := io.ReadFull(p.input, buf)
+func (dec *Decoder) readFull(buf []byte) error {
+	n, err := io.ReadFull(dec.input, buf)
 	if err != nil {
 		return err
 	}
-	p.readCount += n
+	dec.readCount += n
 	return nil
 }
