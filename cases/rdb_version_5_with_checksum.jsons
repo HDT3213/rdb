@@ -1,0 +1,6 @@
+{"db":0,"key":"abcd","expiration":null,"value":"efgh"}
+{"db":0,"key":"foo","expiration":null,"value":"bar"}
+{"db":0,"key":"bar","expiration":null,"value":"baz"}
+{"db":0,"key":"abcdef","expiration":null,"value":"abcdef"}
+{"db":0,"key":"longerstring","expiration":null,"value":"thisisalongerstring.idontknowwhatitmeans"}
+{"db":0,"key":"abc","expiration":null,"value":"def"}
