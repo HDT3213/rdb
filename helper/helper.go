@@ -1,8 +1,9 @@
-package main
+package helper
 
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/hdt3213/rdb/model"
 	"github.com/hdt3213/rdb/parser"
 	"os"
 )
@@ -24,7 +25,7 @@ func ToJsons(rdbFilename string, jsonFilename string) error {
 		_ = jsonFile.Close()
 	}()
 	p := parser.NewParser(rdbFile)
-	return p.Parse(func(object parser.RedisObject) bool {
+	return p.Parse(func(object model.RedisObject) bool {
 		data, err := json.Marshal(object)
 		if err != nil {
 			fmt.Printf("json marshal failed: %v", err)

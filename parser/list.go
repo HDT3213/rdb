@@ -7,18 +7,18 @@ import (
 )
 
 const (
-	ZipStr06B = 0
-	ZipStr14B = 1
-	ZipStr32B = 2
+	zipStr06B = 0
+	zipStr14B = 1
+	zipStr32B = 2
 
-	ZipInt04B = 0x0f
-	ZipInt08B = 0xfe        // 11111110
-	ZipInt16B = 0xc0 | 0<<4 // 11000000
-	ZipInt24B = 0xc0 | 3<<4 // 11110000
-	ZipInt32B = 0xc0 | 1<<4 // 11010000
-	ZipInt64B = 0xc0 | 2<<4 //11100000
+	zipInt04B = 0x0f
+	zipInt08B = 0xfe        // 11111110
+	zipInt16B = 0xc0 | 0<<4 // 11000000
+	zipInt24B = 0xc0 | 3<<4 // 11110000
+	zipInt32B = 0xc0 | 1<<4 // 11010000
+	zipInt64B = 0xc0 | 2<<4 //11100000
 
-	ZipBigPrevLen = 0xfe
+	zipBigPrevLen = 0xfe
 )
 
 func (p *Parser) readList() ([][]byte, error) {
@@ -64,24 +64,24 @@ func (p *Parser) readZipListEntry(buf []byte, cursor *int) (result []byte, err e
 	}()
 	prevLen := buf[*cursor]
 	*cursor++
-	if prevLen == ZipBigPrevLen {
+	if prevLen == zipBigPrevLen {
 		*cursor += 4
 	}
 	header := buf[*cursor]
 	*cursor++
 	typ := header >> 6
 	switch typ {
-	case ZipStr06B:
+	case zipStr06B:
 		length := int(header & 0x3f)
 		result, err = readBytes(buf, cursor, length)
 		return
-	case ZipStr14B:
+	case zipStr14B:
 		b := buf[*cursor]
 		*cursor++
 		length := (int(header&0x3f) << 8) | int(b)
 		result, err = readBytes(buf, cursor, length)
 		return
-	case ZipStr32B:
+	case zipStr32B:
 		var lenBytes []byte
 		lenBytes, err = readBytes(buf, cursor, 4)
 		if err != nil {
@@ -92,7 +92,7 @@ func (p *Parser) readZipListEntry(buf []byte, cursor *int) (result []byte, err e
 		return
 	}
 	switch header {
-	case ZipInt08B:
+	case zipInt08B:
 		var b byte
 		b, err = readByte(buf, cursor)
 		if err != nil {
@@ -100,7 +100,7 @@ func (p *Parser) readZipListEntry(buf []byte, cursor *int) (result []byte, err e
 		}
 		result = []byte(strconv.FormatInt(int64(int8(b)), 10))
 		return
-	case ZipInt16B:
+	case zipInt16B:
 		var bs []byte
 		bs, err = readBytes(buf, cursor, 2)
 		if err != nil {
@@ -108,7 +108,7 @@ func (p *Parser) readZipListEntry(buf []byte, cursor *int) (result []byte, err e
 		}
 		result = []byte(strconv.FormatInt(int64(int16(binary.LittleEndian.Uint16(bs))), 10))
 		return
-	case ZipInt32B:
+	case zipInt32B:
 		var bs []byte
 		bs, err = readBytes(buf, cursor, 4)
 		if err != nil {
@@ -116,7 +116,7 @@ func (p *Parser) readZipListEntry(buf []byte, cursor *int) (result []byte, err e
 		}
 		result = []byte(strconv.FormatInt(int64(int32(binary.LittleEndian.Uint32(bs))), 10))
 		return
-	case ZipInt64B:
+	case zipInt64B:
 		var bs []byte
 		bs, err = readBytes(buf, cursor, 8)
 		if err != nil {
@@ -124,7 +124,7 @@ func (p *Parser) readZipListEntry(buf []byte, cursor *int) (result []byte, err e
 		}
 		result = []byte(strconv.FormatInt(int64(binary.LittleEndian.Uint64(bs)), 10))
 		return
-	case ZipInt24B:
+	case zipInt24B:
 		var bs []byte
 		bs, err = readBytes(buf, cursor, 3)
 		if err != nil {
@@ -134,7 +134,7 @@ func (p *Parser) readZipListEntry(buf []byte, cursor *int) (result []byte, err e
 		result = []byte(strconv.FormatInt(int64(int32(binary.LittleEndian.Uint32(bs))>>8), 10))
 		return
 	}
-	if header>>4 == ZipInt04B {
+	if header>>4 == zipInt04B {
 		result = []byte(strconv.FormatInt(int64(header&0x0f)-1, 10))
 		return
 	}

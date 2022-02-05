@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"github.com/hdt3213/rdb/helper"
 	"os"
 	"path/filepath"
 	"testing"
@@ -15,7 +16,7 @@ func compareFileByLine(fn1, fn2 string) (bool, error) {
 	defer func() {
 		_ = f1.Close()
 	}()
-	f2, err := os.Open(fn1)
+	f2, err := os.Open(fn2)
 	if err != nil {
 		return false, err
 	}
@@ -83,14 +84,14 @@ func TestParse(t *testing.T) {
 	}
 	for _, filename := range testCases {
 		srcRdb := filepath.Join("cases", filename+".rdb")
-		actualJson := filepath.Join("tmp", filename+".jsons")
-		expectJson := filepath.Join("cases", filename+".jsons")
-		err = ToJsons(srcRdb, actualJson)
+		actualJSON := filepath.Join("tmp", filename+".jsons")
+		expectJSON := filepath.Join("cases", filename+".jsons")
+		err = helper.ToJsons(srcRdb, actualJSON)
 		if err != nil {
 			t.Errorf("error occurs during parse %s, err: %v", filename, err)
 			continue
 		}
-		equals, err := compareFileByLine(actualJson, expectJson)
+		equals, err := compareFileByLine(actualJSON, expectJSON)
 		if err != nil {
 			t.Errorf("error occurs during compare %s, err: %v", filename, err)
 			continue
@@ -99,5 +100,35 @@ func TestParse(t *testing.T) {
 			t.Errorf("result is not equal of %s", filename)
 			continue
 		}
+	}
+}
+
+func TestMemoryProfile(t *testing.T) {
+	err := os.MkdirAll("tmp", os.ModePerm)
+	if err != nil {
+		return
+	}
+	defer func() {
+		err := os.RemoveAll("tmp")
+		if err != nil {
+			t.Logf("remove tmp directory failed: %v", err)
+		}
+	}()
+	srcRdb := filepath.Join("cases", "memory.rdb")
+	actualFile := filepath.Join("tmp", "memory.csv")
+	expectFile := filepath.Join("cases", "memory.csv")
+	err = helper.MemoryProfile(srcRdb, actualFile)
+	if err != nil {
+		t.Errorf("error occurs during parse %s, err: %v", srcRdb, err)
+		return
+	}
+	equals, err := compareFileByLine(actualFile, expectFile)
+	if err != nil {
+		t.Errorf("error occurs during compare %s, err: %v", srcRdb, err)
+		return
+	}
+	if !equals {
+		t.Errorf("result is not equal of %s", srcRdb)
+		return
 	}
 }

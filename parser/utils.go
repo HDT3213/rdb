@@ -3,6 +3,7 @@ package parser
 import (
 	"encoding/binary"
 	"errors"
+	"io"
 )
 
 func readBytes(buf []byte, cursor *int, size int) ([]byte, error) {
@@ -37,4 +38,22 @@ func readZipListLength(buf []byte, cursor *int) int {
 	size := int(binary.LittleEndian.Uint16(buf[start:end]))
 	*cursor += 10
 	return size
+}
+
+func (p *Parser) readByte() (byte, error) {
+	b, err := p.input.ReadByte()
+	if err != nil {
+		return 0, err
+	}
+	p.readCount++
+	return b, nil
+}
+
+func (p *Parser) readFull(buf []byte) error {
+	n, err := io.ReadFull(p.input, buf)
+	if err != nil {
+		return err
+	}
+	p.readCount += n
+	return nil
 }

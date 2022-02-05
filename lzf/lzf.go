@@ -1,5 +1,6 @@
 package lzf
 
+// Decompress decompress lzf compressed data
 func Decompress(in []byte, inLen int, outLen int) []byte {
 	out := make([]byte, outLen)
 	for i, o := 0, 0; i < inLen; {

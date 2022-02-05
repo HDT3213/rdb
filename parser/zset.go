@@ -1,13 +1,16 @@
 package parser
 
-import "strconv"
+import (
+	"github.com/hdt3213/rdb/model"
+	"strconv"
+)
 
-func (p *Parser) readZSet(zset2 bool) ([]*ZSetEntry, error) {
+func (p *Parser) readZSet(zset2 bool) ([]*model.ZSetEntry, error) {
 	length, _, err := p.readLength()
 	if err != nil {
 		return nil, err
 	}
-	entries := make([]*ZSetEntry, 0, int(length))
+	entries := make([]*model.ZSetEntry, 0, int(length))
 	for i := uint64(0); i < length; i++ {
 		member, err := p.readString()
 		if err != nil {
@@ -19,7 +22,7 @@ func (p *Parser) readZSet(zset2 bool) ([]*ZSetEntry, error) {
 		} else {
 			score, err = p.readLiteralFloat()
 		}
-		entries = append(entries, &ZSetEntry{
+		entries = append(entries, &model.ZSetEntry{
 			Member: string(member),
 			Score:  score,
 		})
@@ -27,14 +30,14 @@ func (p *Parser) readZSet(zset2 bool) ([]*ZSetEntry, error) {
 	return entries, nil
 }
 
-func (p *Parser) readZipListZSet() ([]*ZSetEntry, error) {
+func (p *Parser) readZipListZSet() ([]*model.ZSetEntry, error) {
 	buf, err := p.readString()
 	if err != nil {
 		return nil, err
 	}
 	cursor := 0
 	size := readZipListLength(buf, &cursor)
-	entries := make([]*ZSetEntry, 0, size)
+	entries := make([]*model.ZSetEntry, 0, size)
 	for i := 0; i < size; i += 2 {
 		member, err := p.readZipListEntry(buf, &cursor)
 		if err != nil {
@@ -48,7 +51,7 @@ func (p *Parser) readZipListZSet() ([]*ZSetEntry, error) {
 		if err != nil {
 			return nil, err
 		}
-		entries = append(entries, &ZSetEntry{
+		entries = append(entries, &model.ZSetEntry{
 			Member: string(member),
 			Score:  score,
 		})

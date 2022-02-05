@@ -1,4 +1,4 @@
-// RDB parser core
+// Package parser is RDB parser core
 package parser
 
 import (
@@ -7,14 +7,17 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/hdt3213/rdb/model"
 	"io"
 	"strconv"
 	"time"
 )
 
+// Parser is an instance of rdb parsing process
 type Parser struct {
-	input  *bufio.Reader
-	buffer []byte
+	input     *bufio.Reader
+	readCount int
+	buffer    []byte
 }
 
 // NewParser create a new RDB parser
@@ -65,7 +68,7 @@ const (
 // checkHeader checks whether input has valid RDB file header
 func (p *Parser) checkHeader() error {
 	header := make([]byte, 9)
-	_, err := io.ReadFull(p.input, header)
+	err := p.readFull(header)
 	if err == io.EOF {
 		return errors.New("empty file")
 	}
@@ -85,14 +88,14 @@ func (p *Parser) checkHeader() error {
 	return nil
 }
 
-func (p *Parser) readObject(flag byte, base *BaseObject) (RedisObject, error) {
+func (p *Parser) readObject(flag byte, base *model.BaseObject) (model.RedisObject, error) {
 	switch flag {
 	case typeString:
 		bs, err := p.readString()
 		if err != nil {
 			return nil, err
 		}
-		return &StringObject{
+		return &model.StringObject{
 			BaseObject: base,
 			Value:      bs,
 		}, nil
@@ -101,7 +104,7 @@ func (p *Parser) readObject(flag byte, base *BaseObject) (RedisObject, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &ListObject{
+		return &model.ListObject{
 			BaseObject: base,
 			Values:     list,
 		}, nil
@@ -110,7 +113,7 @@ func (p *Parser) readObject(flag byte, base *BaseObject) (RedisObject, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &SetObject{
+		return &model.SetObject{
 			BaseObject: base,
 			Members:    set,
 		}, nil
@@ -119,7 +122,7 @@ func (p *Parser) readObject(flag byte, base *BaseObject) (RedisObject, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &SetObject{
+		return &model.SetObject{
 			BaseObject: base,
 			Members:    set,
 		}, nil
@@ -128,7 +131,7 @@ func (p *Parser) readObject(flag byte, base *BaseObject) (RedisObject, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &HashObject{
+		return &model.HashObject{
 			BaseObject: base,
 			Hash:       hash,
 		}, nil
@@ -137,7 +140,7 @@ func (p *Parser) readObject(flag byte, base *BaseObject) (RedisObject, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &ListObject{
+		return &model.ListObject{
 			BaseObject: base,
 			Values:     list,
 		}, nil
@@ -146,7 +149,7 @@ func (p *Parser) readObject(flag byte, base *BaseObject) (RedisObject, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &ListObject{
+		return &model.ListObject{
 			BaseObject: base,
 			Values:     list,
 		}, nil
@@ -155,7 +158,7 @@ func (p *Parser) readObject(flag byte, base *BaseObject) (RedisObject, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &HashObject{
+		return &model.HashObject{
 			BaseObject: base,
 			Hash:       m,
 		}, nil
@@ -164,7 +167,7 @@ func (p *Parser) readObject(flag byte, base *BaseObject) (RedisObject, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &HashObject{
+		return &model.HashObject{
 			BaseObject: base,
 			Hash:       m,
 		}, nil
@@ -173,7 +176,7 @@ func (p *Parser) readObject(flag byte, base *BaseObject) (RedisObject, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &ZSetObject{
+		return &model.ZSetObject{
 			BaseObject: base,
 			Entries:    entries,
 		}, nil
@@ -182,7 +185,7 @@ func (p *Parser) readObject(flag byte, base *BaseObject) (RedisObject, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &ZSetObject{
+		return &model.ZSetObject{
 			BaseObject: base,
 			Entries:    entries,
 		}, nil
@@ -191,7 +194,7 @@ func (p *Parser) readObject(flag byte, base *BaseObject) (RedisObject, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &ZSetObject{
+		return &model.ZSetObject{
 			BaseObject: base,
 			Entries:    entries,
 		}, nil
@@ -199,11 +202,11 @@ func (p *Parser) readObject(flag byte, base *BaseObject) (RedisObject, error) {
 	return nil, fmt.Errorf("unknown type flag: %b", flag)
 }
 
-func (p *Parser) parse(cb func(object RedisObject) bool) error {
+func (p *Parser) parse(cb func(object model.RedisObject) bool) error {
 	var dbIndex int
 	var expireMs int64
 	for {
-		b, err := p.input.ReadByte()
+		b, err := p.readByte()
 		if err != nil {
 			return err
 		}
@@ -217,14 +220,14 @@ func (p *Parser) parse(cb func(object RedisObject) bool) error {
 			dbIndex = int(dbIndex64)
 			continue
 		} else if b == opCodeExpireTime {
-			_, err = io.ReadFull(p.input, p.buffer)
+			err = p.readFull(p.buffer)
 			if err != nil {
 				return err
 			}
 			expireMs = int64(binary.LittleEndian.Uint64(p.buffer)) * 1000
 			continue
 		} else if b == opCodeExpireTimeMs {
-			_, err = io.ReadFull(p.input, p.buffer)
+			err = p.readFull(p.buffer)
 			if err != nil {
 				return err
 			}
@@ -255,7 +258,7 @@ func (p *Parser) parse(cb func(object RedisObject) bool) error {
 			// todo: return aux
 			continue
 		} else if b == opCodeFreq {
-			_, err = p.input.ReadByte()
+			_, err = p.readByte()
 			if err != nil {
 				return err
 			}
@@ -265,11 +268,13 @@ func (p *Parser) parse(cb func(object RedisObject) bool) error {
 				return err
 			}
 		}
+		begPos := p.readCount
 		key, err := p.readString()
 		if err != nil {
 			return err
 		}
-		base := &BaseObject{
+		keySize := p.readCount - begPos
+		base := &model.BaseObject{
 			DB:  dbIndex,
 			Key: string(key),
 		}
@@ -277,10 +282,12 @@ func (p *Parser) parse(cb func(object RedisObject) bool) error {
 			expiration := time.Unix(0, expireMs*int64(time.Millisecond))
 			base.Expiration = &expiration
 		}
+		begPos = p.readCount
 		obj, err := p.readObject(b, base)
 		if err != nil {
 			return err
 		}
+		obj.SetSize(p.readCount - begPos + keySize)
 		toBeContinued := cb(obj)
 		if !toBeContinued {
 			break
@@ -290,7 +297,7 @@ func (p *Parser) parse(cb func(object RedisObject) bool) error {
 }
 
 // Parse parses rdb and callback
-func (p *Parser) Parse(cb func(object RedisObject) bool) error {
+func (p *Parser) Parse(cb func(object model.RedisObject) bool) error {
 	err := p.checkHeader()
 	if err != nil {
 		return err
