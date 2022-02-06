@@ -45,6 +45,22 @@ func main() {
 				return
 			}
 		}
+	case "aof":
+		{
+			if src == "" {
+				println("src file is required")
+				return
+			}
+			if output == "" {
+				println("output file path is required")
+				return
+			}
+			err := helper.ToAOF(src, output)
+			if err != nil {
+				fmt.Printf("error: %v\n", err)
+				return
+			}
+		}
 	default:
 		println("unknown command")
 	}

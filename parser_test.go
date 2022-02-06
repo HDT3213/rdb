@@ -132,3 +132,33 @@ func TestMemoryProfile(t *testing.T) {
 		return
 	}
 }
+
+func TestToAof(t *testing.T) {
+	err := os.MkdirAll("tmp", os.ModePerm)
+	if err != nil {
+		return
+	}
+	defer func() {
+		err := os.RemoveAll("tmp")
+		if err != nil {
+			t.Logf("remove tmp directory failed: %v", err)
+		}
+	}()
+	srcRdb := filepath.Join("cases", "memory.rdb")
+	actualFile := filepath.Join("tmp", "memory.aof")
+	expectFile := filepath.Join("cases", "memory.aof")
+	err = helper.ToAOF(srcRdb, actualFile)
+	if err != nil {
+		t.Errorf("error occurs during parse %s, err: %v", srcRdb, err)
+		return
+	}
+	equals, err := compareFileByLine(actualFile, expectFile)
+	if err != nil {
+		t.Errorf("error occurs during compare %s, err: %v", srcRdb, err)
+		return
+	}
+	if !equals {
+		t.Errorf("result is not equal of %s", srcRdb)
+		return
+	}
+}

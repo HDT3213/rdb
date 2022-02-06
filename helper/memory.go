@@ -3,6 +3,7 @@ package helper
 import (
 	"encoding/csv"
 	"fmt"
+	"github.com/hdt3213/rdb/bytefmt"
 	"github.com/hdt3213/rdb/core"
 	"github.com/hdt3213/rdb/model"
 	"os"
@@ -38,7 +39,7 @@ func MemoryProfile(rdbFilename string, csvFilename string) error {
 			object.GetKey(),
 			object.GetType(),
 			strconv.Itoa(object.GetSize()),
-			FormatSize(uint64(object.GetSize())),
+			bytefmt.FormatSize(uint64(object.GetSize())),
 			strconv.Itoa(object.GetElemCount()),
 		})
 		if err != nil {

@@ -1,4 +1,6 @@
-package helper
+package bytefmt
+
+// from: github.com/cloudfoundry/bytefmt by Apache License
 
 import (
 	"errors"
