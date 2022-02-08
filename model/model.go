@@ -33,8 +33,6 @@ type RedisObject interface {
 	GetExpiration() *time.Time
 	// GetSize returns rdb value size in Byte
 	GetSize() int
-	// SetSize set rdb value size in Byte
-	SetSize(int)
 	// GetElemCount returns number of elements in list/set/hash/zset
 	GetElemCount() int
 }
@@ -44,7 +42,8 @@ type BaseObject struct {
 	DB         int        `json:"db"`                   // DB is db index of redis object
 	Key        string     `json:"key"`                  // Key is key of redis object
 	Expiration *time.Time `json:"expiration,omitempty"` // Expiration is expiration time, expiration of persistent object is nil
-	Size       int        `json:"size,omitempty"`       // Size is rdb value size in Byte
+	Size       int        `json:"size"`                 // Size is rdb value size in Byte
+	Type       string     `json:"type"`
 }
 
 // GetKey returns key of object
@@ -65,11 +64,6 @@ func (o *BaseObject) GetExpiration() *time.Time {
 // GetSize  returns rdb value size in Byte
 func (o *BaseObject) GetSize() int {
 	return o.Size
-}
-
-// SetSize set rdb value size in Byte
-func (o *BaseObject) SetSize(size int) {
-	o.Size = size
 }
 
 // GetElemCount returns number of elements in list/set/hash/zset

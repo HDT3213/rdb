@@ -55,6 +55,7 @@ func TestParse(t *testing.T) {
 		}
 	}()
 	testCases := []string{
+		"memory",
 		"quicklist",
 		"easily_compressible_string_key",
 		"empty_database",

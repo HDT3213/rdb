@@ -287,7 +287,8 @@ func (dec *Decoder) parse(cb func(object model.RedisObject) bool) error {
 		if err != nil {
 			return err
 		}
-		obj.SetSize(dec.readCount - begPos + keySize)
+		base.Size = dec.readCount - begPos + keySize
+		base.Type = obj.GetType()
 		toBeContinued := cb(obj)
 		if !toBeContinued {
 			break

@@ -1,3 +1,3 @@
 [
-{"db":0,"key":"sorted_set_as_ziplist","size":165,"entries":[{"member":"8b6ba6718a786daefa69438148361901","score":1},{"member":"cb7a24bb7528f934b841b34c3a73e0c7","score":2.37},{"member":"523af537946b79c4f8369ed39ba78605","score":3.423}]}
+{"db":0,"key":"sorted_set_as_ziplist","size":165,"type":"zset","entries":[{"member":"8b6ba6718a786daefa69438148361901","score":1},{"member":"cb7a24bb7528f934b841b34c3a73e0c7","score":2.37},{"member":"523af537946b79c4f8369ed39ba78605","score":3.423}]}
 ]
