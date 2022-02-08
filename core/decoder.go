@@ -20,7 +20,7 @@ type Decoder struct {
 	buffer    []byte
 }
 
-// NewDecoder create a new RDB core
+// NewDecoder creates a new RDB decoder
 func NewDecoder(reader io.Reader) *Decoder {
 	parser := new(Decoder)
 	parser.input = bufio.NewReader(reader)

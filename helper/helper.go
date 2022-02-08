@@ -24,21 +24,38 @@ func ToJsons(rdbFilename string, jsonFilename string) error {
 	defer func() {
 		_ = jsonFile.Close()
 	}()
+	_, err = jsonFile.WriteString("[\n")
+	empty := true
 	p := core.NewDecoder(rdbFile)
-	return p.Parse(func(object model.RedisObject) bool {
+	err = p.Parse(func(object model.RedisObject) bool {
 		data, err := json.Marshal(object)
 		if err != nil {
 			fmt.Printf("json marshal failed: %v", err)
 			return true
 		}
-		data = append(data, '\n')
+		data = append(data, ',', '\n')
 		_, err = jsonFile.Write(data)
 		if err != nil {
 			fmt.Printf("write failed: %v", err)
 			return true
 		}
+		empty = false
 		return true
 	})
+	if err != nil {
+		return err
+	}
+	if !empty {
+		_, err = jsonFile.Seek(-2, 2)
+		if err != nil {
+			return fmt.Errorf("error during seek in file: %v", err)
+		}
+	}
+	_, err = jsonFile.WriteString("\n]")
+	if err != nil {
+		return fmt.Errorf("error during write in file: %v", err)
+	}
+	return nil
 }
 
 // ToAOF read rdb file and convert to aof file (Redis Serialization )

@@ -1,6 +1,0 @@
-{"db":0,"key":"abcd","size":10,"value":"efgh"}
-{"db":0,"key":"foo","size":8,"value":"bar"}
-{"db":0,"key":"bar","size":8,"value":"baz"}
-{"db":0,"key":"abcdef","size":14,"value":"abcdef"}
-{"db":0,"key":"longerstring","size":54,"value":"thisisalongerstring.idontknowwhatitmeans"}
-{"db":0,"key":"abc","size":8,"value":"def"}

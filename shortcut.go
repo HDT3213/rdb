@@ -1,6 +1,9 @@
 package main
 
-import "github.com/hdt3213/rdb/model"
+import (
+	"github.com/hdt3213/rdb/core"
+	"github.com/hdt3213/rdb/model"
+)
 
 const (
 	// StringType is redis string
@@ -28,4 +31,9 @@ type (
 	HashObject = model.HashObject
 	// ZSetObject stores a sorted set object
 	ZSetObject = model.ZSetObject
+)
+
+var (
+	// NewDecoder creates a new RDB decoder
+	NewDecoder = core.NewDecoder
 )
