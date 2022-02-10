@@ -91,6 +91,7 @@ func TestToJson(t *testing.T) {
 		"zipmap_that_compresses_easily",
 		"zipmap_that_doesnt_compress",
 		"zipmap_with_big_values",
+		"zipmap_big_len",
 	}
 	for _, filename := range testCases {
 		srcRdb := filepath.Join("cases", filename+".rdb")

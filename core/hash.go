@@ -42,11 +42,13 @@ func (dec *Decoder) readZipMapHash() (map[string][]byte, error) {
 	length := int(bLen)
 	if bLen > 254 {
 		//todo: scan once
+		cursor0 := cursor // record current cursor
 		length, err = countZipMapEntries(buf, &cursor)
 		if err != nil {
 			return nil, err
 		}
 		length /= 2
+		cursor = cursor0 // recover cursor at begin position of first zip map entry
 	}
 	m := make(map[string][]byte)
 	for i := 0; i < length; i++ {
