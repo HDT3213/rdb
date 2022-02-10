@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func compareFileByLine(fn1, fn2 string) (bool, error) {
+func compareFileByLine(t *testing.T, fn1, fn2 string) (bool, error) {
 	f1, err := os.Open(fn1)
 	if err != nil {
 		return false, err
@@ -34,16 +34,20 @@ func compareFileByLine(fn1, fn2 string) (bool, error) {
 		}
 		if next1 != next2 {
 			// line number is not equals
+			t.Log("line number is not equal")
 			return false, nil
 		}
-		if sc1.Text() != sc2.Text() {
+		txt1 := sc1.Text()
+		txt2 := sc2.Text()
+		if txt1 != txt2 {
+			t.Logf("txt1: %s\ntxt2:%s", txt1, txt2)
 			return false, nil
 		}
 	}
 	return true, nil
 }
 
-func TestParse(t *testing.T) {
+func TestToJson(t *testing.T) {
 	err := os.MkdirAll("tmp", os.ModePerm)
 	if err != nil {
 		return
@@ -92,7 +96,7 @@ func TestParse(t *testing.T) {
 			t.Errorf("error occurs during parse %s, err: %v", filename, err)
 			continue
 		}
-		equals, err := compareFileByLine(actualJSON, expectJSON)
+		equals, err := compareFileByLine(t, actualJSON, expectJSON)
 		if err != nil {
 			t.Errorf("error occurs during compare %s, err: %v", filename, err)
 			continue
@@ -123,7 +127,7 @@ func TestMemoryProfile(t *testing.T) {
 		t.Errorf("error occurs during parse %s, err: %v", srcRdb, err)
 		return
 	}
-	equals, err := compareFileByLine(actualFile, expectFile)
+	equals, err := compareFileByLine(t, actualFile, expectFile)
 	if err != nil {
 		t.Errorf("error occurs during compare %s, err: %v", srcRdb, err)
 		return
@@ -153,7 +157,7 @@ func TestToAof(t *testing.T) {
 		t.Errorf("error occurs during parse %s, err: %v", srcRdb, err)
 		return
 	}
-	equals, err := compareFileByLine(actualFile, expectFile)
+	equals, err := compareFileByLine(t, actualFile, expectFile)
 	if err != nil {
 		t.Errorf("error occurs during compare %s, err: %v", srcRdb, err)
 		return
