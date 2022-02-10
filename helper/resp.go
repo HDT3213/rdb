@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-const CRLF = "\r\n"
+const crlf = "\r\n"
 
 // CmdLine is alias for [][]byte, represents a command line
 type CmdLine = [][]byte
@@ -14,12 +14,12 @@ type CmdLine = [][]byte
 func makeMultiBulkResp(args [][]byte) []byte {
 	argLen := len(args)
 	var buf bytes.Buffer
-	buf.WriteString("*" + strconv.Itoa(argLen) + CRLF)
+	buf.WriteString("*" + strconv.Itoa(argLen) + crlf)
 	for _, arg := range args {
 		if arg == nil {
-			buf.WriteString("$-1" + CRLF)
+			buf.WriteString("$-1" + crlf)
 		} else {
-			buf.WriteString("$" + strconv.Itoa(len(arg)) + CRLF + string(arg) + CRLF)
+			buf.WriteString("$" + strconv.Itoa(len(arg)) + crlf + string(arg) + crlf)
 		}
 	}
 	return buf.Bytes()

@@ -1,4 +1,5 @@
-package main
+// Package parser is interface for parser
+package parser
 
 import (
 	"github.com/hdt3213/rdb/core"

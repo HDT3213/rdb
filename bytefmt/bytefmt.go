@@ -10,16 +10,16 @@ import (
 )
 
 const (
-	BYTE = 1 << (10 * iota)
-	KILOBYTE
-	MEGABYTE
-	GIGABYTE
-	TERABYTE
-	PETABYTE
-	EXABYTE
+	sizeByte = 1 << (10 * iota)
+	sizeKilo
+	sizeMega
+	sizeGiga
+	sizeTera
+	sizePeta
+	sizeExa
 )
 
-var invalidByteQuantityError = errors.New("byte quantity must be a positive integer with a unit of measurement like M, MB, MiB, G, GiB, or GB")
+var errInvalidByteQuantity = errors.New("byte quantity must be a positive integer with a unit of measurement like M, MB, MiB, G, GiB, or GB")
 
 // FormatSize returns a human-readable byte string of the form 10M, 12.5K, and so forth.  The following units are available:
 //  E: Exabyte
@@ -35,25 +35,25 @@ func FormatSize(bytes uint64) string {
 	value := float64(bytes)
 
 	switch {
-	case bytes >= EXABYTE:
+	case bytes >= sizeExa:
 		unit = "E"
-		value = value / EXABYTE
-	case bytes >= PETABYTE:
+		value = value / sizeExa
+	case bytes >= sizePeta:
 		unit = "P"
-		value = value / PETABYTE
-	case bytes >= TERABYTE:
+		value = value / sizePeta
+	case bytes >= sizeTera:
 		unit = "T"
-		value = value / TERABYTE
-	case bytes >= GIGABYTE:
+		value = value / sizeTera
+	case bytes >= sizeGiga:
 		unit = "G"
-		value = value / GIGABYTE
-	case bytes >= MEGABYTE:
+		value = value / sizeGiga
+	case bytes >= sizeMega:
 		unit = "M"
-		value = value / MEGABYTE
-	case bytes >= KILOBYTE:
+		value = value / sizeMega
+	case bytes >= sizeKilo:
 		unit = "K"
-		value = value / KILOBYTE
-	case bytes >= BYTE:
+		value = value / sizeKilo
+	case bytes >= sizeByte:
 		unit = "B"
 	case bytes == 0:
 		return "0"
@@ -78,31 +78,31 @@ func ParseSize(s string) (uint64, error) {
 	i := strings.IndexFunc(s, unicode.IsLetter)
 
 	if i == -1 {
-		return 0, invalidByteQuantityError
+		return 0, errInvalidByteQuantity
 	}
 
 	bytesString, multiple := s[:i], s[i:]
 	bytes, err := strconv.ParseFloat(bytesString, 64)
 	if err != nil || bytes <= 0 {
-		return 0, invalidByteQuantityError
+		return 0, errInvalidByteQuantity
 	}
 
 	switch multiple {
 	case "E", "EB", "EIB":
-		return uint64(bytes * EXABYTE), nil
+		return uint64(bytes * sizeExa), nil
 	case "P", "PB", "PIB":
-		return uint64(bytes * PETABYTE), nil
+		return uint64(bytes * sizePeta), nil
 	case "T", "TB", "TIB":
-		return uint64(bytes * TERABYTE), nil
+		return uint64(bytes * sizeTera), nil
 	case "G", "GB", "GIB":
-		return uint64(bytes * GIGABYTE), nil
+		return uint64(bytes * sizeGiga), nil
 	case "M", "MB", "MIB":
-		return uint64(bytes * MEGABYTE), nil
+		return uint64(bytes * sizeMega), nil
 	case "K", "KB", "KIB":
-		return uint64(bytes * KILOBYTE), nil
+		return uint64(bytes * sizeKilo), nil
 	case "B":
 		return uint64(bytes), nil
 	default:
-		return 0, invalidByteQuantityError
+		return 0, errInvalidByteQuantity
 	}
 }
