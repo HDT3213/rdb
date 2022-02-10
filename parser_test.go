@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func compareFileByLine(t *testing.T, fn1, fn2 string) (bool, error) {
@@ -48,6 +49,10 @@ func compareFileByLine(t *testing.T, fn1, fn2 string) (bool, error) {
 }
 
 func TestToJson(t *testing.T) {
+	// use same time zone to ensure RedisObject.Expiration has same json value
+	var cstZone = time.FixedZone("CST", 8*3600)
+	time.Local = cstZone
+
 	err := os.MkdirAll("tmp", os.ModePerm)
 	if err != nil {
 		return
