@@ -1,3 +1,8 @@
+![license](https://img.shields.io/github/license/HDT3213/rdb)
+[![Build Status](https://travis-ci.com/HDT3213/rdb.svg?branch=master)](https://app.travis-ci.com/github/HDT3213/rdb)
+[![Coverage Status](https://coveralls.io/repos/github/HDT3213/rdb/badge.svg?branch=master)](https://coveralls.io/github/HDT3213/rdb?branch=master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/HDT3213/rdb)](https://goreportcard.com/report/github.com/HDT3213/rdb)
+[![Go Reference](https://pkg.go.dev/badge/github.com/hdt3213/rdb.svg)](https://pkg.go.dev/github.com/hdt3213/rdb)
 
 This project is a parser for Redis' RDB files. 
 
@@ -98,3 +103,44 @@ aaaaaaa
 
 # Customize data usage
 
+```go
+package main
+
+import (
+	"github.com/hdt3213/rdb/parser"
+	"os"
+)
+
+func main() {
+	rdbFile, err := os.Open("dump.rdb")
+	if err != nil {
+		panic("open dump.rdb failed")
+	}
+	defer func() {
+		_ = rdbFile.Close()
+	}()
+	decoder := parser.NewDecoder(rdbFile)
+	err = decoder.Parse(func(o parser.RedisObject) bool {
+		switch o.GetType() {
+		case parser.StringType:
+			str := o.(*parser.StringObject)
+			println(str.Key, str.Value)
+		case parser.ListType:
+			list := o.(*parser.ListObject)
+			println(list.Key, list.Values)
+		case parser.HashType:
+			hash := o.(*parser.HashObject)
+			println(hash.Key, hash.Hash)
+		case parser.ZSetType:
+			zset := o.(*parser.ZSetObject)
+			println(zset.Key, zset.Entries)
+		}
+		// return true to continue, return false to stop the iteration
+		return true
+	})
+	if err != nil {
+		panic(err)
+	}
+}
+
+```
