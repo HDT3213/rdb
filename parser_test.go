@@ -112,6 +112,14 @@ func TestToJson(t *testing.T) {
 			continue
 		}
 	}
+	err = helper.ToJsons("cases/memory.rdb", "")
+	if err == nil || err.Error() != "output file path is required" {
+		t.Error("failed when empty output")
+	}
+	err = helper.ToJsons("", "tmp/memory.rdb")
+	if err == nil || err.Error() != "src file path is required" {
+		t.Error("failed when empty output")
+	}
 }
 
 func TestMemoryProfile(t *testing.T) {
@@ -142,6 +150,14 @@ func TestMemoryProfile(t *testing.T) {
 		t.Errorf("result is not equal of %s", srcRdb)
 		return
 	}
+	err = helper.MemoryProfile("cases/memory.rdb", "")
+	if err == nil || err.Error() != "output file path is required" {
+		t.Error("failed when empty output")
+	}
+	err = helper.MemoryProfile("", "tmp/memory.rdb")
+	if err == nil || err.Error() != "src file path is required" {
+		t.Error("failed when empty output")
+	}
 }
 
 func TestToAof(t *testing.T) {
@@ -171,5 +187,61 @@ func TestToAof(t *testing.T) {
 	if !equals {
 		t.Errorf("result is not equal of %s", srcRdb)
 		return
+	}
+	err = helper.ToAOF("cases/memory.rdb", "")
+	if err == nil || err.Error() != "output file path is required" {
+		t.Error("failed when empty output")
+	}
+	err = helper.ToAOF("", "tmp/memory.rdb")
+	if err == nil || err.Error() != "src file path is required" {
+		t.Error("failed when empty output")
+	}
+}
+
+func TestFindLargestKeys(t *testing.T) {
+	err := os.MkdirAll("tmp", os.ModePerm)
+	if err != nil {
+		return
+	}
+	defer func() {
+		err := os.RemoveAll("tmp")
+		if err != nil {
+			t.Logf("remove tmp directory failed: %v", err)
+		}
+	}()
+	srcRdb := filepath.Join("cases", "memory.rdb")
+	expectFile := filepath.Join("cases", "largest.csv")
+	outputFilePath := filepath.Join("tmp", "largest.csv")
+	output, err := os.Create(outputFilePath)
+	if err != nil {
+		t.Errorf("create output file failed: %v", err)
+		return
+	}
+	err = helper.FindBiggestKeys(srcRdb, 5, output)
+	if err != nil {
+		t.Errorf("FindLargestKeys failed: %v", err)
+	}
+	err = output.Close()
+	if err != nil {
+		t.Errorf("error occurs during close output %s, err: %v", srcRdb, err)
+		return
+	}
+	equals, err := compareFileByLine(t, outputFilePath, expectFile)
+	if err != nil {
+		t.Errorf("error occurs during compare %s, err: %v", srcRdb, err)
+		return
+	}
+	if !equals {
+		t.Errorf("result is not equal of %s", srcRdb)
+		return
+	}
+
+	err = helper.FindBiggestKeys("", 5, os.Stdout)
+	if err == nil || err.Error() != "src file path is required" {
+		t.Error("failed when empty output")
+	}
+	err = helper.FindBiggestKeys("cases/memory.rdb", 0, os.Stdout)
+	if err == nil || err.Error() != "n must greater than 0" {
+		t.Error("failed when empty output")
 	}
 }

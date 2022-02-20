@@ -11,6 +11,7 @@ It provides utilities to:
 - Generate memory report for rdb file
 - Convert RDB files to JSON
 - Convert RDB files to Redis Serialization Protocol (or AOF file)
+- Find Biggest Key in RDB files
 - Customize data usage
 
 Thanks sripathikrishnan for his [redis-rdb-tools](https://github.com/sripathikrishnan/redis-rdb-tools)
@@ -22,7 +23,7 @@ If you have installed `go` on your compute, just simply use:
 go get github.com/hdt3213/rdb
 ```
 
-Or, you can download executable binary file from releases(https://github.com/HDT3213/rdb/releases) and put its path to PATH environment.
+Or, you can download executable binary file from [releases](https://github.com/HDT3213/rdb/releases) and put its path to PATH environment.
 
 use `rdb` command in terminal, you can see it's manual
 
@@ -65,7 +66,7 @@ Example:
 rdb -c memory -o mem.csv cases/memory.rdb
 ```
 
-The examples for json result:
+The examples for csv result:
 ```csv
 database,key,type,size,size_readable,element_count
 0,hash,hash,64,64B,2
@@ -74,6 +75,28 @@ database,key,type,size,size_readable,element_count
 0,list,list,66,66B,4
 0,zset,zset,57,57B,2
 0,large,string,2056,2K,0
+0,set,set,39,39B,2
+```
+
+# Find Biggest Keys
+
+RDB can find biggest N keys in file
+```
+rdb -c bigkey -n <result_number> <source_path>
+```
+
+Example:
+```
+rdb -c bigkey -n 5 cases/memory.rdb
+```
+
+The examples for csv result:
+```csv
+database,key,type,size,size_readable,element_count
+0,large,string,2056,2K,0
+0,list,list,66,66B,4
+0,hash,hash,64,64B,2
+0,zset,zset,57,57B,2
 0,set,set,39,39B,2
 ```
 

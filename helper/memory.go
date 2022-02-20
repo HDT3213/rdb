@@ -2,6 +2,7 @@ package helper
 
 import (
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"github.com/hdt3213/rdb/bytefmt"
 	"github.com/hdt3213/rdb/core"
@@ -12,6 +13,12 @@ import (
 
 // MemoryProfile read rdb file and analysis memory usage then write result to csv file
 func MemoryProfile(rdbFilename string, csvFilename string) error {
+	if rdbFilename == "" {
+		return errors.New("src file path is required")
+	}
+	if csvFilename == "" {
+		return errors.New("output file path is required")
+	}
 	rdbFile, err := os.Open(rdbFilename)
 	if err != nil {
 		return fmt.Errorf("open rdb %s failed, %v", rdbFilename, err)
