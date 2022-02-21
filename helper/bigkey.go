@@ -1,10 +1,10 @@
 package helper
 
 import (
-	"container/heap"
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"github.com/emirpasic/gods/sets/treeset"
 	"github.com/hdt3213/rdb/bytefmt"
 	"github.com/hdt3213/rdb/core"
 	"github.com/hdt3213/rdb/model"
@@ -12,77 +12,52 @@ import (
 	"strconv"
 )
 
-type redisHeap struct {
-	list     []model.RedisObject
+type redisTreeSet struct {
+	set      *treeset.Set
 	capacity int
-	minSize  int // size of min object
-	minIndex int // index of min object
 }
 
-func (h redisHeap) Len() int {
-	return len(h.list)
-}
-
-// Max Heap
-func (h *redisHeap) Less(i, j int) bool {
-	return h.list[i].GetSize() > h.list[j].GetSize()
-}
-
-func (h *redisHeap) Swap(i, j int) {
-	h.list[i], h.list[j] = h.list[j], h.list[i]
-}
-
-func (h *redisHeap) Push(x interface{}) {
-	h.list = append(h.list, x.(model.RedisObject))
-}
-
-func (h *redisHeap) Pop() interface{} {
-	item := h.list[len(h.list)-1]
-	h.list = h.list[0 : len(h.list)-1]
-	return item
+func (h *redisTreeSet) GetMin() model.RedisObject {
+	iter := h.set.Iterator()
+	iter.End()
+	if iter.Prev() {
+		raw := iter.Value()
+		return raw.(model.RedisObject)
+	}
+	return nil
 }
 
 // time complexity: O(n*log(m)), n is number of redis object, m is heap capacity. m if far less than n
-func (h *redisHeap) Append(x model.RedisObject) {
-	// heap is full, skip
-	if x.GetSize() <= h.minSize && h.Len() >= h.capacity {
-		return
-	}
-	// if heap is full, pop min object
-	if h.Len() >= h.capacity {
-		// assert h.minIndex >= 0
-		heap.Remove(h, h.minIndex)
-	}
-	heap.Push(h, x)
-	// update h.minSize
-	h.minSize = 1<<31 - 1
-	for i := h.Len() - 1; i >= 0; i-- { //
-		o := h.list[i]
-		if o.GetSize() < h.minSize {
-			h.minSize = o.GetSize()
-			h.minIndex = i
+func (h *redisTreeSet) Append(x model.RedisObject) {
+	// if heap is full && x.Size > minSize, then pop min
+	if h.set.Size() == h.capacity {
+		min := h.GetMin()
+		if min.GetSize() < x.GetSize() {
+			h.set.Remove(min)
 		}
 	}
+	h.set.Add(x)
 }
 
-func (h *redisHeap) Dump() []model.RedisObject {
-	result := make([]model.RedisObject, 0, h.Len())
-	for h.Len() > 0 {
-		o := heap.Pop(h).(model.RedisObject)
-		result = append(result, o)
+func (h *redisTreeSet) Dump() []model.RedisObject {
+	result := make([]model.RedisObject, 0, h.set.Size())
+	iter := h.set.Iterator()
+	for iter.Next() {
+		result = append(result, iter.Value().(model.RedisObject))
 	}
 	return result
 }
 
-func newRedisHeap(cap int) *redisHeap {
-	list := make([]model.RedisObject, 0, cap)
-	h := &redisHeap{
-		list:     list,
+func newRedisHeap(cap int) *redisTreeSet {
+	s := treeset.NewWith(func(a, b interface{}) int {
+		o1 := a.(model.RedisObject)
+		o2 := b.(model.RedisObject)
+		return o2.GetSize() - o1.GetSize() // desc order
+	})
+	return &redisTreeSet{
+		set:      s,
 		capacity: cap,
-		minIndex: -1,
 	}
-	heap.Init(h)
-	return h
 }
 
 // FindBiggestKeys read rdb file and find the largest N keys.
@@ -116,8 +91,9 @@ func FindBiggestKeys(rdbFilename string, topN int, output *os.File) error {
 	}
 	csvWriter := csv.NewWriter(output)
 	defer csvWriter.Flush()
-	for topList.Len() > 0 {
-		object := heap.Pop(topList).(model.RedisObject)
+	iter := topList.set.Iterator()
+	for iter.Next() {
+		object := iter.Value().(model.RedisObject)
 		err = csvWriter.Write([]string{
 			strconv.Itoa(object.GetDBIndex()),
 			object.GetKey(),
