@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"github.com/hdt3213/rdb/helper"
+	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
@@ -244,4 +245,31 @@ func TestFindLargestKeys(t *testing.T) {
 	if err == nil || err.Error() != "n must greater than 0" {
 		t.Error("failed when empty output")
 	}
+}
+
+func TestFlameGraph(t *testing.T) {
+	srcRdb := filepath.Join("cases", "tree.rdb")
+	stop, err := helper.FlameGraph(srcRdb, 18888, "", 0)
+	if err != nil {
+		t.Errorf("FindLargestKeys failed: %v", err)
+	}
+	resp, err := http.Get("http://localhost:18888/flamegraph")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("http %d", resp.StatusCode)
+		return
+	}
+	resp, err = http.Get("http://localhost:18888/stacks.json")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("http %d", resp.StatusCode)
+		return
+	}
+	stop <- struct{}{}
 }
