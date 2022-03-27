@@ -13,13 +13,13 @@ var flameTmplData = &struct {
 	D3Js         template.JS
 	D3Flame      template.JS
 	D3Tip        template.JS
-	BootstrapCss template.CSS
+	BootstrapCSS template.CSS
 }{
 	D3Css:        template.CSS(d3Css),
 	D3Js:         template.JS(d3Js),
 	D3Flame:      template.JS(d3FlameGraphJs),
 	D3Tip:        template.JS(d3TipJs),
-	BootstrapCss: template.CSS(bootstrapCss),
+	BootstrapCSS: template.CSS(bootstrapCSS),
 }
 
 func flamegraph(w http.ResponseWriter, r *http.Request) {
@@ -38,8 +38,6 @@ type FlameItem struct {
 	Children children `json:"c,omitempty"`
 }
 
-type children map[string]*FlameItem
-
 func (ch children) MarshalJSON() ([]byte, error) {
 	list := make([]*FlameItem, 0, len(ch))
 	for _, v := range ch {
@@ -48,16 +46,25 @@ func (ch children) MarshalJSON() ([]byte, error) {
 	return json.Marshal(list)
 }
 
+// AddChild add a child node into FlameItem
+func (node *FlameItem) AddChild(n *FlameItem) {
+	node.Children[n.Name] = n
+}
+
+type children map[string]*FlameItem
+
 // Web starts a web server to render flamegraph
 func Web(data []byte, port int) chan<- struct{} {
-	server := &http.Server{
-		Addr: ":" + strconv.Itoa(port),
-	}
-	http.HandleFunc("/flamegraph", flamegraph)
-	http.HandleFunc("/stacks.json", func(w http.ResponseWriter, r *http.Request) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/flamegraph", flamegraph)
+	mux.HandleFunc("/stacks.json", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write(data)
 	})
+	server := &http.Server{
+		Addr:    ":" + strconv.Itoa(port),
+		Handler: mux,
+	}
 	fmt.Printf("see http://localhost:%d/flamegraph\n", port)
 	stop := make(chan struct{})
 	go func() {

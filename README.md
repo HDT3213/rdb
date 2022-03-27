@@ -4,7 +4,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/HDT3213/rdb)](https://goreportcard.com/report/github.com/HDT3213/rdb)
 [![Go Reference](https://pkg.go.dev/badge/github.com/hdt3213/rdb.svg)](https://pkg.go.dev/github.com/hdt3213/rdb)
 
-This project is a parser for Redis' RDB files. 
+This project is a parser for Redis' RDB files.
 
 It provides utilities to:
 
@@ -19,22 +19,26 @@ Thanks sripathikrishnan for his [redis-rdb-tools](https://github.com/sripathikri
 # Install
 
 If you have installed `go` on your compute, just simply use:
+
 ```
 go get github.com/hdt3213/rdb
 ```
 
-Or, you can download executable binary file from [releases](https://github.com/HDT3213/rdb/releases) and put its path to PATH environment.
+Or, you can download executable binary file from [releases](https://github.com/HDT3213/rdb/releases) and put its path to
+PATH environment.
 
 use `rdb` command in terminal, you can see it's manual
 
 # Convert to Json
 
 Usage:
+
 ```
 rdb -c json -o <output_path> <source_path>
 ```
 
 example:
+
 ```
 rdb -c json -o intset_16.json cases/intset_16.rdb
 ```
@@ -57,16 +61,19 @@ The examples for json result:
 # Generate Memory Report
 
 RDB uses rdb encoded size to estimate redis memory usage.
+
 ```
 rdb -c memory -o <output_path> <source_path>
 ```
 
 Example:
+
 ```
 rdb -c memory -o mem.csv cases/memory.rdb
 ```
 
 The examples for csv result:
+
 ```csv
 database,key,type,size,size_readable,element_count
 0,hash,hash,64,64B,2
@@ -81,16 +88,19 @@ database,key,type,size,size_readable,element_count
 # Find Biggest Keys
 
 RDB can find biggest N keys in file
+
 ```
 rdb -c bigkey -n <result_number> <source_path>
 ```
 
 Example:
+
 ```
 rdb -c bigkey -n 5 cases/memory.rdb
 ```
 
 The examples for csv result:
+
 ```csv
 database,key,type,size,size_readable,element_count
 0,large,string,2056,2K,0
@@ -103,11 +113,13 @@ database,key,type,size,size_readable,element_count
 # Convert to AOF
 
 Usage:
+
 ```
 rdb -c aof -o <output_path> <source_path>
 ```
 
 Example:
+
 ```
 rdb -c aof -o mem.aof cases/memory.rdb
 ```
@@ -123,6 +135,31 @@ s
 $7
 aaaaaaa
 ```
+
+# Flame Graph
+
+In many cases there is not a few very large key but lots of small keys that occupied most memory.
+
+RDB tool could separate keys by given delimeter, then aggregate keys with same prefix.
+
+Finally RDB tool presents the result as flame graph, with which you could find out which kind of keys consumed most
+memory.
+
+Usage:
+
+```
+rdb -c flamegraph [-port <port>] [-sep <separator>] <source_path>
+```
+
+Example:
+
+```
+rdb -c flamegraph -port 16379 -sep : dump.rdb
+```
+
+![](https://s2.loli.net/2022/03/27/eNGvVIdAuWp8EhT.png)
+
+In the example, the keys of pattern `Comment:*` use 8.463% memory.
 
 # Customize data usage
 

@@ -248,8 +248,9 @@ func TestFindLargestKeys(t *testing.T) {
 }
 
 func TestFlameGraph(t *testing.T) {
+	helper.TrimThreshold = 1
 	srcRdb := filepath.Join("cases", "tree.rdb")
-	stop, err := helper.FlameGraph(srcRdb, 18888, "", 0)
+	stop, err := helper.FlameGraph(srcRdb, 18888, "")
 	if err != nil {
 		t.Errorf("FindLargestKeys failed: %v", err)
 	}
@@ -272,4 +273,15 @@ func TestFlameGraph(t *testing.T) {
 		return
 	}
 	stop <- struct{}{}
+
+	stop, err = helper.FlameGraph(srcRdb, 0, "")
+	if err != nil {
+		t.Errorf("FindLargestKeys failed: %v", err)
+	}
+	stop <- struct{}{}
+
+	stop, err = helper.FlameGraph("", 0, "")
+	if err == nil || err.Error() != "src file path is required" {
+		t.Error("expect error: src file path is required")
+	}
 }

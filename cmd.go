@@ -26,7 +26,7 @@ Examples:
 4. get largest keys
   rdb -c bigkey -o dump.aof dump.rdb
 5. draw flamegraph
-  rdb -c flamegraph [-port <port>] [-sep <separator>]
+  rdb -c flamegraph -port 16379 -sep : dump.rdb
 `
 
 func main() {
@@ -75,7 +75,7 @@ func main() {
 			err = helper.FindBiggestKeys(src, n, outputFile)
 		}
 	case "flamegraph":
-		_, err = helper.FlameGraph(src, port, separator, 0)
+		_, err = helper.FlameGraph(src, port, separator)
 		<-make(chan struct{})
 	default:
 		println("unknown command")

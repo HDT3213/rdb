@@ -12,7 +12,11 @@ import (
 	"strings"
 )
 
-func FlameGraph(rdbFilename string, port int, separator string, maxDepth int) (chan<- struct{}, error) {
+// TrimThreshold is the min count of keys to enable trim
+var TrimThreshold = 1000
+
+// FlameGraph draws flamegraph in web page to analysis memory usage pattern
+func FlameGraph(rdbFilename string, port int, separator string) (chan<- struct{}, error) {
 	if rdbFilename == "" {
 		return nil, errors.New("src file path is required")
 	}
@@ -33,28 +37,68 @@ func FlameGraph(rdbFilename string, port int, separator string, maxDepth int) (c
 	root := &d3flame.FlameItem{
 		Children: make(map[string]*d3flame.FlameItem),
 	}
+	var count int
 	err = p.Parse(func(object model.RedisObject) bool {
-		parts := strings.Split(object.GetKey(), separator)
-		node := root
-		parts = append([]string{"db:" + strconv.Itoa(object.GetDBIndex())}, parts...)
-		for _, part := range parts {
-			if node.Children[part] == nil {
-				node.Children[part] = &d3flame.FlameItem{
-					Name:     part,
-					Children: make(map[string]*d3flame.FlameItem),
-				}
-			}
-			node = node.Children[part]
-			node.Value += object.GetSize()
-		}
+		count++
+		addObject(root, separator, object)
 		return true
 	})
 	if err != nil {
 		return nil, err
+	}
+	if count >= TrimThreshold {
+		trimData(root)
 	}
 	data, err := json.Marshal(root)
 	if err != nil {
 		return nil, err
 	}
 	return d3flame.Web(data, port), nil
+}
+
+func addObject(root *d3flame.FlameItem, separator string, object model.RedisObject) {
+	node := root
+	parts := strings.Split(object.GetKey(), separator)
+	parts = append([]string{"db:" + strconv.Itoa(object.GetDBIndex())}, parts...)
+	for _, part := range parts {
+		if node.Children[part] == nil {
+			n := &d3flame.FlameItem{
+				Name:     part,
+				Children: make(map[string]*d3flame.FlameItem),
+			}
+			node.AddChild(n)
+		}
+		node = node.Children[part]
+		node.Value += object.GetSize()
+	}
+}
+
+// bigNodeThreshold is the min size
+var bigNodeThreshold = 1024 * 1024 // 1MB
+
+func trimData(root *d3flame.FlameItem) {
+	// trim long tail
+	queue := []*d3flame.FlameItem{
+		root,
+	}
+	for len(queue) > 0 {
+		// Aggregate leaf nodes
+		node := queue[0]
+		queue = queue[1:]
+		leafSum := 0
+		for key, child := range node.Children {
+			if len(child.Children) == 0 && child.Value < bigNodeThreshold { // child is a leaf node
+				delete(node.Children, key) // remove small leaf keys
+				leafSum += child.Value
+			}
+			queue = append(queue, child) // reserve big key
+		}
+		if leafSum > 0 {
+			n := &d3flame.FlameItem{
+				Name:  "others",
+				Value: leafSum,
+			}
+			node.AddChild(n)
+		}
+	}
 }

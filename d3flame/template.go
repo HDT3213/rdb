@@ -1,6 +1,7 @@
 package d3flame
 
 import (
+	// use go embed to load js and css source file
 	_ "embed"
 )
 
@@ -28,7 +29,7 @@ var d3TipJs string
 
 // https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css
 //go:embed bootstrap.min.css
-var bootstrapCss string
+var bootstrapCSS string
 
 const html = `
 <head>
@@ -66,7 +67,7 @@ const html = `
 </head>
 <body>
 	<style type="text/css">{{.D3Css}}</style>
-	<style type="text/css">{{.BootstrapCss}}</style>
+	<style type="text/css">{{.BootstrapCSS}}</style>
 	<script type="text/javascript">{{.D3Js}}</script>
 	<script type="text/javascript">{{.D3Flame}}</script>
 	<script type="text/javascript">{{.D3Tip}}</script>
