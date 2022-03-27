@@ -23,4 +23,49 @@ func TestCmd(t *testing.T) {
 	if f, _ := os.Stat("tmp/cmd.json"); f == nil {
 		t.Error("command json failed")
 	}
+	os.Args = []string{"", "-c", "memory", "-o", "tmp/memory.csv", "cases/memory.rdb"}
+	main()
+	if f, _ := os.Stat("tmp/memory.csv"); f == nil {
+		t.Error("command memory failed")
+	}
+	os.Args = []string{"", "-c", "aof", "-o", "tmp/memory.aof", "cases/memory.rdb"}
+	main()
+	if f, _ := os.Stat("tmp/memory.aof"); f == nil {
+		t.Error("command memory failed")
+	}
+	os.Args = []string{"", "-c", "bigkey", "-o", "tmp/bigkey.csv", "-n", "10", "cases/memory.rdb"}
+	main()
+	if f, _ := os.Stat("tmp/bigkey.csv"); f == nil {
+		t.Error("command bigkey failed")
+	}
+	os.Args = []string{"", "-c", "bigkey", "-n", "10", "cases/memory.rdb"}
+	main()
+
+	// test error command line
+	os.Args = []string{"", "-c", "json", "-o", "tmp/output", "/none/a"}
+	main()
+	os.Args = []string{"", "-c", "aof", "-o", "tmp/output", "/none/a"}
+	main()
+	os.Args = []string{"", "-c", "memory", "-o", "tmp/output", "/none/a"}
+	main()
+	os.Args = []string{"", "-c", "bigkey", "-o", "tmp/output", "/none/a"}
+	main()
+
+	os.Args = []string{"", "-c", "bigkey", "-o", "/none/a", "-n", "10", "cases/memory.rdb"}
+	main()
+	os.Args = []string{"", "-c", "aof", "-o", "/none/a", "cases/memory.rdb"}
+	main()
+	os.Args = []string{"", "-c", "memory", "-o", "/none/a", "cases/memory.rdb"}
+	main()
+	os.Args = []string{"", "-c", "json", "-o", "/none/a", "cases/memory.rdb"}
+	main()
+
+	os.Args = []string{"", "-c", "bigkey", "-o", "tmp/bigkey.csv", "cases/memory.rdb"}
+	main()
+	os.Args = []string{"", "-c", "none", "-o", "tmp/memory.aof", "cases/memory.rdb"}
+	main()
+	os.Args = []string{""}
+	main()
+	os.Args = []string{"", "-c", "aof"}
+	main()
 }

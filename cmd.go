@@ -13,6 +13,8 @@ Options:
   -c command, including: json/memory/aof
   -o output file path
   -n number of result 
+  -port listen port for flame graph web service
+  -sep separator for flamegraph, rdb will separate key by it, default value is ":"
 
 Examples:
 1. convert rdb to json
@@ -23,17 +25,24 @@ Examples:
   rdb -c aof -o dump.aof dump.rdb
 4. get largest keys
   rdb -c bigkey -o dump.aof dump.rdb
+5. draw flamegraph
+  rdb -c flamegraph [-port <port>] [-sep <separator>]
 `
 
 func main() {
+	flagSet := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	var cmd string
 	var output string
 	var n int
-	flag.StringVar(&cmd, "c", "", "command for rdb: json")
-	flag.StringVar(&output, "o", "", "output file path")
-	flag.IntVar(&n, "n", 0, "")
-	flag.Parse()
-	src := flag.Arg(0)
+	var port int
+	var separator string
+	flagSet.StringVar(&cmd, "c", "", "command for rdb: json")
+	flagSet.StringVar(&output, "o", "", "output file path")
+	flagSet.IntVar(&n, "n", 0, "")
+	flagSet.IntVar(&port, "port", 0, "listen port for web")
+	flagSet.StringVar(&separator, "sep", "", "")
+	_ = flagSet.Parse(os.Args[1:]) // ExitOnError
+	src := flagSet.Arg(0)
 
 	if cmd == "" {
 		println(help)
@@ -53,7 +62,21 @@ func main() {
 	case "aof":
 		err = helper.ToAOF(src, output)
 	case "bigkey":
-		err = helper.FindBiggestKeys(src, n, os.Stdout)
+		if output == "" {
+			err = helper.FindBiggestKeys(src, n, os.Stdout)
+		} else {
+			outputFile, err := os.Create(output)
+			if err != nil {
+				fmt.Printf("open output faild: %v", err)
+			}
+			defer func() {
+				_ = outputFile.Close()
+			}()
+			err = helper.FindBiggestKeys(src, n, outputFile)
+		}
+	case "flamegraph":
+		_, err = helper.FlameGraph(src, port, separator, 0)
+		<-make(chan struct{})
 	default:
 		println("unknown command")
 		return

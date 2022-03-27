@@ -19,6 +19,9 @@ func FlameGraph(rdbFilename string, port int, separator string, maxDepth int) (c
 	if separator == "" {
 		separator = ":"
 	}
+	if port == 0 {
+		port = 16379 // default port
+	}
 	rdbFile, err := os.Open(rdbFilename)
 	if err != nil {
 		return nil, fmt.Errorf("open rdb %s failed, %v", rdbFilename, err)
