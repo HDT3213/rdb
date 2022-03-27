@@ -140,15 +140,19 @@ aaaaaaa
 
 In many cases there is not a few very large key but lots of small keys that occupied most memory.
 
-RDB tool could separate keys by given delimeter, then aggregate keys with same prefix.
+RDB tool could separate keys by the given delimeters, then aggregate keys with same prefix.
 
 Finally RDB tool presents the result as flame graph, with which you could find out which kind of keys consumed most
 memory.
 
+![](https://s2.loli.net/2022/03/27/eNGvVIdAuWp8EhT.png)
+
+In this example, the keys of pattern `Comment:*` use 8.463% memory.
+
 Usage:
 
 ```
-rdb -c flamegraph [-port <port>] [-sep <separator>] <source_path>
+rdb -c flamegraph [-port <port>] [-sep <separator1>] [-sep <separator2>] <source_path>
 ```
 
 Example:
@@ -156,10 +160,6 @@ Example:
 ```
 rdb -c flamegraph -port 16379 -sep : dump.rdb
 ```
-
-![](https://s2.loli.net/2022/03/27/eNGvVIdAuWp8EhT.png)
-
-In the example, the keys of pattern `Comment:*` use 8.463% memory.
 
 # Customize data usage
 

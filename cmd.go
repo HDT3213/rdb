@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/hdt3213/rdb/helper"
 	"os"
+	"strings"
 )
 
 const help = `
@@ -14,7 +15,8 @@ Options:
   -o output file path
   -n number of result 
   -port listen port for flame graph web service
-  -sep separator for flamegraph, rdb will separate key by it, default value is ":"
+  -sep separator for flamegraph, rdb will separate key by it, default value is ":". 
+		supporting multi separators: -sep sep1 -sep sep2 
 
 Examples:
 1. convert rdb to json
@@ -29,18 +31,29 @@ Examples:
   rdb -c flamegraph -port 16379 -sep : dump.rdb
 `
 
+type separators []string
+
+func (s *separators) String() string {
+	return strings.Join(*s, " ")
+}
+
+func (s *separators) Set(value string) error {
+	*s = append(*s, value)
+	return nil
+}
+
 func main() {
 	flagSet := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	var cmd string
 	var output string
 	var n int
 	var port int
-	var separator string
+	var seps separators
 	flagSet.StringVar(&cmd, "c", "", "command for rdb: json")
 	flagSet.StringVar(&output, "o", "", "output file path")
 	flagSet.IntVar(&n, "n", 0, "")
 	flagSet.IntVar(&port, "port", 0, "listen port for web")
-	flagSet.StringVar(&separator, "sep", "", "")
+	flagSet.Var(&seps, "sep", "separator for flamegraph")
 	_ = flagSet.Parse(os.Args[1:]) // ExitOnError
 	src := flagSet.Arg(0)
 
@@ -75,7 +88,7 @@ func main() {
 			err = helper.FindBiggestKeys(src, n, outputFile)
 		}
 	case "flamegraph":
-		_, err = helper.FlameGraph(src, port, separator)
+		_, err = helper.FlameGraph(src, port, seps...)
 		<-make(chan struct{})
 	default:
 		println("unknown command")

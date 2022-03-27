@@ -16,12 +16,9 @@ import (
 var TrimThreshold = 1000
 
 // FlameGraph draws flamegraph in web page to analysis memory usage pattern
-func FlameGraph(rdbFilename string, port int, separator string) (chan<- struct{}, error) {
+func FlameGraph(rdbFilename string, port int, separator ...string) (chan<- struct{}, error) {
 	if rdbFilename == "" {
 		return nil, errors.New("src file path is required")
-	}
-	if separator == "" {
-		separator = ":"
 	}
 	if port == 0 {
 		port = 16379 // default port
@@ -56,9 +53,20 @@ func FlameGraph(rdbFilename string, port int, separator string) (chan<- struct{}
 	return d3flame.Web(data, port), nil
 }
 
-func addObject(root *d3flame.FlameItem, separator string, object model.RedisObject) {
+func split(s string, separators []string) []string {
+	sep := ":"
+	if len(separators) > 0 {
+		sep = separators[0]
+	}
+	for i := 1; i < len(separators); i++ {
+		s = strings.ReplaceAll(s, separators[i], sep)
+	}
+	return strings.Split(s, sep)
+}
+
+func addObject(root *d3flame.FlameItem, separators []string, object model.RedisObject) {
 	node := root
-	parts := strings.Split(object.GetKey(), separator)
+	parts := split(object.GetKey(), separators)
 	parts = append([]string{"db:" + strconv.Itoa(object.GetDBIndex())}, parts...)
 	for _, part := range parts {
 		if node.Children[part] == nil {
