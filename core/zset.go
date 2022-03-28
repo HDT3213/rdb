@@ -22,6 +22,9 @@ func (dec *Decoder) readZSet(zset2 bool) ([]*model.ZSetEntry, error) {
 		} else {
 			score, err = dec.readLiteralFloat()
 		}
+		if err != nil {
+			return nil, err
+		}
 		entries = append(entries, &model.ZSetEntry{
 			Member: string(member),
 			Score:  score,

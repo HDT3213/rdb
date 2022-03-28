@@ -13,12 +13,13 @@ This is a tool to parse Redis' RDB files
 Options:
   -c command, including: json/memory/aof
   -o output file path
-  -n number of result 
+  -n number of result, using in 
   -port listen port for flame graph web service
   -sep separator for flamegraph, rdb will separate key by it, default value is ":". 
 		supporting multi separators: -sep sep1 -sep sep2 
 
 Examples:
+parameters between '[' and ']' is optional
 1. convert rdb to json
   rdb -c json -o dump.json dump.rdb
 2. generate memory report
@@ -26,9 +27,9 @@ Examples:
 3. convert to aof file
   rdb -c aof -o dump.aof dump.rdb
 4. get largest keys
-  rdb -c bigkey -o dump.aof dump.rdb
+  rdb -c bigkey [-o dump.aof] [-n 10] dump.rdb
 5. draw flamegraph
-  rdb -c flamegraph -port 16379 -sep : dump.rdb
+  rdb -c flamegraph [-port 16379] [-sep :] dump.rdb
 `
 
 type separators []string
