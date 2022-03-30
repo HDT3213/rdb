@@ -220,11 +220,11 @@ func (dec *Decoder) parse(cb func(object model.RedisObject) bool) error {
 			dbIndex = int(dbIndex64)
 			continue
 		} else if b == opCodeExpireTime {
-			err = dec.readFull(dec.buffer)
+			err = dec.readFull(dec.buffer[:4])
 			if err != nil {
 				return err
 			}
-			expireMs = int64(binary.LittleEndian.Uint64(dec.buffer)) * 1000
+			expireMs = int64(binary.LittleEndian.Uint32(dec.buffer)) * 1000
 			continue
 		} else if b == opCodeExpireTimeMs {
 			err = dec.readFull(dec.buffer)
