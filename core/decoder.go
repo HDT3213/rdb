@@ -299,8 +299,7 @@ func (dec *Decoder) parse(cb func(object model.RedisObject) bool) error {
 
 // Parse parses rdb and callback
 // cb returns true to continue, returns false to stop the iteration
-func (dec *Decoder) Parse(cb func(object model.RedisObject) bool) error {
-	var err error
+func (dec *Decoder) Parse(cb func(object model.RedisObject) bool) (err error) {
 	defer func() {
 		if err2 := recover(); err2 != nil {
 			err = fmt.Errorf("panic: %v", err2)
