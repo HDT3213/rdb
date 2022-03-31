@@ -79,7 +79,8 @@ func main() {
 		if output == "" {
 			err = helper.FindBiggestKeys(src, n, os.Stdout)
 		} else {
-			outputFile, err := os.Create(output)
+			var outputFile *os.File
+			outputFile, err = os.Create(output)
 			if err != nil {
 				fmt.Printf("open output faild: %v", err)
 			}

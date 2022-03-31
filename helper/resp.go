@@ -84,7 +84,6 @@ func zSetToCmd(obj *model.ZSetObject) CmdLine {
 		value := strconv.FormatFloat(e.Score, 'f', -1, 64)
 		cmdLine[2+i*2] = []byte(value)
 		cmdLine[3+i*2] = []byte(e.Member)
-		i++
 	}
 	return cmdLine
 }

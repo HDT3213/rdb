@@ -280,7 +280,7 @@ func TestFlameGraph(t *testing.T) {
 	}
 	stop <- struct{}{}
 
-	stop, err = helper.FlameGraph("", 0, "")
+	_, err = helper.FlameGraph("", 0, "")
 	if err == nil || err.Error() != "src file path is required" {
 		t.Error("expect error: src file path is required")
 	}

@@ -32,6 +32,9 @@ func ToJsons(rdbFilename string, jsonFilename string) error {
 		_ = jsonFile.Close()
 	}()
 	_, err = jsonFile.WriteString("[\n")
+	if err != nil {
+		return fmt.Errorf("write json  failed, %v", err)
+	}
 	empty := true
 	p := core.NewDecoder(rdbFile)
 	err = p.Parse(func(object model.RedisObject) bool {
