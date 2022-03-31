@@ -6,14 +6,15 @@
 <br>
 [![Mentioned in Awesome Go](https://awesome.re/mentioned-badge-flat.svg)](https://github.com/avelino/awesome-go)
 
-This project is a parser for Redis' RDB files.
+This is a golang implemented Redis RDB parser for secondary development and memory analysis.
 
-It provides utilities to:
+It provides abilities to:
 
 - Generate memory report for rdb file
 - Convert RDB files to JSON
 - Convert RDB files to Redis Serialization Protocol (or AOF file)
 - Find Biggest Key in RDB files
+- Draw FlameGraph to analysis which kind of keys occupied most memory
 - Customize data usage
 
 Thanks sripathikrishnan for his [redis-rdb-tools](https://github.com/sripathikrishnan/redis-rdb-tools)
