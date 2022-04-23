@@ -164,6 +164,15 @@ Example:
 rdb -c flamegraph -port 16379 -sep : dump.rdb
 ```
 
+# Regex Filter
+
+RDB tool supports using regex expression to filter keys.
+
+Example:
+```rdb
+rdb -c json -o regex.json -regex '^l.*' cases/memory.rdb
+```
+
 # Customize data usage
 
 ```go

@@ -1,0 +1,3 @@
+database,key,type,size,size_readable,element_count
+0,large,string,2056,2K,0
+0,list,list,66,66B,4

@@ -17,6 +17,7 @@ Options:
   -port listen port for flame graph web service
   -sep separator for flamegraph, rdb will separate key by it, default value is ":". 
 		supporting multi separators: -sep sep1 -sep sep2 
+  -regex using regex expression filter keys
 
 Examples:
 parameters between '[' and ']' is optional
@@ -50,11 +51,13 @@ func main() {
 	var n int
 	var port int
 	var seps separators
+	var regexExpr string
 	flagSet.StringVar(&cmd, "c", "", "command for rdb: json")
 	flagSet.StringVar(&output, "o", "", "output file path")
 	flagSet.IntVar(&n, "n", 0, "")
 	flagSet.IntVar(&port, "port", 0, "listen port for web")
 	flagSet.Var(&seps, "sep", "separator for flamegraph")
+	flagSet.StringVar(&regexExpr, "regex", "", "regex expression")
 	_ = flagSet.Parse(os.Args[1:]) // ExitOnError
 	src := flagSet.Arg(0)
 
@@ -67,17 +70,22 @@ func main() {
 		return
 	}
 
+	var options []interface{}
+	if regexExpr != "" {
+		options = append(options, helper.WithRegexOption(regexExpr))
+	}
+
 	var err error
 	switch cmd {
 	case "json":
-		err = helper.ToJsons(src, output)
+		err = helper.ToJsons(src, output, options...)
 	case "memory":
-		err = helper.MemoryProfile(src, output)
+		err = helper.MemoryProfile(src, output, options...)
 	case "aof":
-		err = helper.ToAOF(src, output)
+		err = helper.ToAOF(src, output, options)
 	case "bigkey":
 		if output == "" {
-			err = helper.FindBiggestKeys(src, n, os.Stdout)
+			err = helper.FindBiggestKeys(src, n, os.Stdout, options...)
 		} else {
 			var outputFile *os.File
 			outputFile, err = os.Create(output)
@@ -87,10 +95,10 @@ func main() {
 			defer func() {
 				_ = outputFile.Close()
 			}()
-			err = helper.FindBiggestKeys(src, n, outputFile)
+			err = helper.FindBiggestKeys(src, n, outputFile, options...)
 		}
 	case "flamegraph":
-		_, err = helper.FlameGraph(src, port, seps...)
+		_, err = helper.FlameGraph(src, port, seps, options...)
 		<-make(chan struct{})
 	default:
 		println("unknown command")

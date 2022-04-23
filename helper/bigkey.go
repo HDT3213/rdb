@@ -27,6 +27,7 @@ func (h *redisTreeSet) GetMin() model.RedisObject {
 	return nil
 }
 
+// Append new object into tree set
 // time complexity: O(n*log(m)), n is number of redis object, m is heap capacity. m if far less than n
 func (h *redisTreeSet) Append(x model.RedisObject) {
 	// if heap is full && x.Size > minSize, then pop min
@@ -62,7 +63,7 @@ func newRedisHeap(cap int) *redisTreeSet {
 
 // FindBiggestKeys read rdb file and find the largest N keys.
 // The invoker owns output, FindBiggestKeys won't close it
-func FindBiggestKeys(rdbFilename string, topN int, output *os.File) error {
+func FindBiggestKeys(rdbFilename string, topN int, output *os.File, options ...interface{}) error {
 	if rdbFilename == "" {
 		return errors.New("src file path is required")
 	}
@@ -76,9 +77,22 @@ func FindBiggestKeys(rdbFilename string, topN int, output *os.File) error {
 	defer func() {
 		_ = rdbFile.Close()
 	}()
-	p := core.NewDecoder(rdbFile)
+	var regexOpt RegexOption
+	for _, opt := range options {
+		switch o := opt.(type) {
+		case RegexOption:
+			regexOpt = o
+		}
+	}
+	var dec decoder = core.NewDecoder(rdbFile)
+	if regexOpt != nil {
+		dec, err = regexWrapper(dec, *regexOpt)
+		if err != nil {
+			return err
+		}
+	}
 	topList := newRedisHeap(topN)
-	err = p.Parse(func(object model.RedisObject) bool {
+	err = dec.Parse(func(object model.RedisObject) bool {
 		topList.Append(object)
 		return true
 	})

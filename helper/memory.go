@@ -12,7 +12,7 @@ import (
 )
 
 // MemoryProfile read rdb file and analysis memory usage then write result to csv file
-func MemoryProfile(rdbFilename string, csvFilename string) error {
+func MemoryProfile(rdbFilename string, csvFilename string, options ...interface{}) error {
 	if rdbFilename == "" {
 		return errors.New("src file path is required")
 	}
@@ -33,14 +33,29 @@ func MemoryProfile(rdbFilename string, csvFilename string) error {
 	defer func() {
 		_ = csvFile.Close()
 	}()
+
+	var regexOpt RegexOption
+	for _, opt := range options {
+		switch o := opt.(type) {
+		case RegexOption:
+			regexOpt = o
+		}
+	}
+	var dec decoder = core.NewDecoder(rdbFile)
+	if regexOpt != nil {
+		dec, err = regexWrapper(dec, *regexOpt)
+		if err != nil {
+			return err
+		}
+	}
+
 	_, err = csvFile.WriteString("database,key,type,size,size_readable,element_count\n")
 	if err != nil {
 		return fmt.Errorf("write csv failed: %v", err)
 	}
 	csvWriter := csv.NewWriter(csvFile)
-	p := core.NewDecoder(rdbFile)
 	defer csvWriter.Flush()
-	return p.Parse(func(object model.RedisObject) bool {
+	return dec.Parse(func(object model.RedisObject) bool {
 		err = csvWriter.Write([]string{
 			strconv.Itoa(object.GetDBIndex()),
 			object.GetKey(),

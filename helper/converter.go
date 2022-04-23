@@ -9,14 +9,15 @@ import (
 	"os"
 )
 
-// ToJsons read rdb file and convert to json file whose each line contains a json object
-func ToJsons(rdbFilename string, jsonFilename string) error {
+// ToJsons read rdb file and convert to json file
+func ToJsons(rdbFilename string, jsonFilename string, options ...interface{}) error {
 	if rdbFilename == "" {
 		return errors.New("src file path is required")
 	}
 	if jsonFilename == "" {
 		return errors.New("output file path is required")
 	}
+	// open file
 	rdbFile, err := os.Open(rdbFilename)
 	if err != nil {
 		return fmt.Errorf("open rdb %s failed, %v", rdbFilename, err)
@@ -31,13 +32,28 @@ func ToJsons(rdbFilename string, jsonFilename string) error {
 	defer func() {
 		_ = jsonFile.Close()
 	}()
+	// create decoder
+	var regexOpt RegexOption
+	for _, opt := range options {
+		switch o := opt.(type) {
+		case RegexOption:
+			regexOpt = o
+		}
+	}
+	var dec decoder = core.NewDecoder(rdbFile)
+	if regexOpt != nil {
+		dec, err = regexWrapper(dec, *regexOpt)
+		if err != nil {
+			return err
+		}
+	}
+	// parse rdb
 	_, err = jsonFile.WriteString("[\n")
 	if err != nil {
 		return fmt.Errorf("write json  failed, %v", err)
 	}
 	empty := true
-	p := core.NewDecoder(rdbFile)
-	err = p.Parse(func(object model.RedisObject) bool {
+	err = dec.Parse(func(object model.RedisObject) bool {
 		data, err := json.Marshal(object)
 		if err != nil {
 			fmt.Printf("json marshal failed: %v", err)
@@ -55,6 +71,7 @@ func ToJsons(rdbFilename string, jsonFilename string) error {
 	if err != nil {
 		return err
 	}
+	// finish json
 	if !empty {
 		_, err = jsonFile.Seek(-2, 2)
 		if err != nil {
@@ -69,7 +86,7 @@ func ToJsons(rdbFilename string, jsonFilename string) error {
 }
 
 // ToAOF read rdb file and convert to aof file (Redis Serialization )
-func ToAOF(rdbFilename string, aofFilename string) error {
+func ToAOF(rdbFilename string, aofFilename string, options ...interface{}) error {
 	if rdbFilename == "" {
 		return errors.New("src file path is required")
 	}
@@ -90,8 +107,22 @@ func ToAOF(rdbFilename string, aofFilename string) error {
 	defer func() {
 		_ = aofFile.Close()
 	}()
-	p := core.NewDecoder(rdbFile)
-	return p.Parse(func(object model.RedisObject) bool {
+
+	var regexOpt RegexOption
+	for _, opt := range options {
+		switch o := opt.(type) {
+		case RegexOption:
+			regexOpt = o
+		}
+	}
+	var dec decoder = core.NewDecoder(rdbFile)
+	if regexOpt != nil {
+		dec, err = regexWrapper(dec, *regexOpt)
+		if err != nil {
+			return err
+		}
+	}
+	return dec.Parse(func(object model.RedisObject) bool {
 		cmdLines := ObjectToCmd(object)
 		data := CmdLinesToResp(cmdLines)
 		_, err = aofFile.Write(data)

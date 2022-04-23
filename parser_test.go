@@ -123,6 +123,40 @@ func TestToJson(t *testing.T) {
 	}
 }
 
+func TestToJsonWithRegex(t *testing.T) {
+	err := os.MkdirAll("tmp", os.ModePerm)
+	if err != nil {
+		return
+	}
+	defer func() {
+		err := os.RemoveAll("tmp")
+		if err != nil {
+			t.Logf("remove tmp directory failed: %v", err)
+		}
+	}()
+	srcRdb := filepath.Join("cases", "memory.rdb")
+	actualJSON := filepath.Join("tmp", "memory_regex.json")
+	expectJSON := filepath.Join("cases", "memory_regex.json")
+	err = helper.ToJsons(srcRdb, actualJSON, helper.WithRegexOption("^l.*"))
+	if err != nil {
+		t.Errorf("error occurs during parse, err: %v", err)
+		return
+	}
+	equals, err := compareFileByLine(t, actualJSON, expectJSON)
+	if err != nil {
+		t.Errorf("error occurs during compare err: %v", err)
+		return
+	}
+	if !equals {
+		t.Errorf("result is not equal")
+		return
+	}
+	err = helper.ToJsons(srcRdb, actualJSON, helper.WithRegexOption(`(i)\1`))
+	if err == nil {
+		t.Error("expect error")
+	}
+}
+
 func TestMemoryProfile(t *testing.T) {
 	err := os.MkdirAll("tmp", os.ModePerm)
 	if err != nil {
@@ -161,6 +195,40 @@ func TestMemoryProfile(t *testing.T) {
 	}
 }
 
+func TestMemoryWithRegex(t *testing.T) {
+	err := os.MkdirAll("tmp", os.ModePerm)
+	if err != nil {
+		return
+	}
+	defer func() {
+		err := os.RemoveAll("tmp")
+		if err != nil {
+			t.Logf("remove tmp directory failed: %v", err)
+		}
+	}()
+	srcRdb := filepath.Join("cases", "memory.rdb")
+	actualFile := filepath.Join("tmp", "memory_regex.csv")
+	expectFile := filepath.Join("cases", "memory_regex.csv")
+	err = helper.MemoryProfile(srcRdb, actualFile, helper.WithRegexOption("^l.*"))
+	if err != nil {
+		t.Errorf("error occurs during parse, err: %v", err)
+		return
+	}
+	equals, err := compareFileByLine(t, actualFile, expectFile)
+	if err != nil {
+		t.Errorf("error occurs during compare err: %v", err)
+		return
+	}
+	if !equals {
+		t.Errorf("result is not equal")
+		return
+	}
+	err = helper.MemoryProfile(srcRdb, actualFile, helper.WithRegexOption(`(i)\1`))
+	if err == nil {
+		t.Error("expect error")
+	}
+}
+
 func TestToAof(t *testing.T) {
 	err := os.MkdirAll("tmp", os.ModePerm)
 	if err != nil {
@@ -196,6 +264,40 @@ func TestToAof(t *testing.T) {
 	err = helper.ToAOF("", "tmp/memory.rdb")
 	if err == nil || err.Error() != "src file path is required" {
 		t.Error("failed when empty output")
+	}
+}
+
+func TestToAofWithRegex(t *testing.T) {
+	err := os.MkdirAll("tmp", os.ModePerm)
+	if err != nil {
+		return
+	}
+	defer func() {
+		err := os.RemoveAll("tmp")
+		if err != nil {
+			t.Logf("remove tmp directory failed: %v", err)
+		}
+	}()
+	srcRdb := filepath.Join("cases", "memory.rdb")
+	actualFile := filepath.Join("tmp", "memory_regex.aof")
+	expectFile := filepath.Join("cases", "memory_regex.aof")
+	err = helper.ToAOF(srcRdb, actualFile, helper.WithRegexOption("^l.*"))
+	if err != nil {
+		t.Errorf("error occurs during parse, err: %v", err)
+		return
+	}
+	equals, err := compareFileByLine(t, actualFile, expectFile)
+	if err != nil {
+		t.Errorf("error occurs during compare err: %v", err)
+		return
+	}
+	if !equals {
+		t.Errorf("result is not equal")
+		return
+	}
+	err = helper.ToAOF(srcRdb, actualFile, helper.WithRegexOption(`(i)\1`))
+	if err == nil {
+		t.Error("expect error")
 	}
 }
 
@@ -247,12 +349,57 @@ func TestFindLargestKeys(t *testing.T) {
 	}
 }
 
+func TestFindBiggestKeyWithRegex(t *testing.T) {
+	err := os.MkdirAll("tmp", os.ModePerm)
+	if err != nil {
+		return
+	}
+	defer func() {
+		err := os.RemoveAll("tmp")
+		if err != nil {
+			t.Logf("remove tmp directory failed: %v", err)
+		}
+	}()
+	srcRdb := filepath.Join("cases", "memory.rdb")
+	actualFile := filepath.Join("tmp", "memory_regex.biggest.csv")
+	expectFile := filepath.Join("cases", "memory_regex.biggest.csv")
+	output, err := os.Create(actualFile)
+	if err != nil {
+		t.Errorf("create output file failed: %v", err)
+		return
+	}
+	err = helper.FindBiggestKeys(srcRdb, 2, output, helper.WithRegexOption("^l.*"))
+	if err != nil {
+		t.Errorf("error occurs during parse, err: %v", err)
+		return
+	}
+	equals, err := compareFileByLine(t, actualFile, expectFile)
+	if err != nil {
+		t.Errorf("error occurs during compare err: %v", err)
+		return
+	}
+	if !equals {
+		t.Errorf("result is not equal")
+		return
+	}
+
+	output, err = os.Create(actualFile)
+	if err != nil {
+		t.Errorf("create output file failed: %v", err)
+		return
+	}
+	err = helper.FindBiggestKeys(srcRdb, 2, output, helper.WithRegexOption(`(i)\1`))
+	if err == nil {
+		t.Error("expect error")
+	}
+}
+
 func TestFlameGraph(t *testing.T) {
 	helper.TrimThreshold = 1
 	srcRdb := filepath.Join("cases", "tree.rdb")
-	stop, err := helper.FlameGraph(srcRdb, 18888, "")
+	stop, err := helper.FlameGraph(srcRdb, 18888, nil)
 	if err != nil {
-		t.Errorf("FindLargestKeys failed: %v", err)
+		t.Errorf("draw FlameGraph failed: %v", err)
 	}
 	resp, err := http.Get("http://localhost:18888/flamegraph")
 	if err != nil {
@@ -274,14 +421,28 @@ func TestFlameGraph(t *testing.T) {
 	}
 	stop <- struct{}{}
 
-	stop, err = helper.FlameGraph(srcRdb, 0, "")
+	stop, err = helper.FlameGraph(srcRdb, 0, nil)
 	if err != nil {
 		t.Errorf("FindLargestKeys failed: %v", err)
 	}
 	stop <- struct{}{}
 
-	_, err = helper.FlameGraph("", 0, "")
+	_, err = helper.FlameGraph("", 0, nil)
 	if err == nil || err.Error() != "src file path is required" {
 		t.Error("expect error: src file path is required")
+	}
+}
+
+func TestFlameGraphWithRegex(t *testing.T) {
+	srcRdb := filepath.Join("cases", "tree.rdb")
+	stop, err := helper.FlameGraph(srcRdb, 18888, nil, helper.WithRegexOption("^l.*"))
+	if err != nil {
+		t.Errorf("FindLargestKeys failed: %v", err)
+	}
+	stop <- struct{}{}
+
+	_, err = helper.FlameGraph(srcRdb, 18888, nil, helper.WithRegexOption(`(1)\2`))
+	if err == nil {
+		t.Errorf("expect error: %v", err)
 	}
 }

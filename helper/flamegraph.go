@@ -16,7 +16,7 @@ import (
 var TrimThreshold = 1000
 
 // FlameGraph draws flamegraph in web page to analysis memory usage pattern
-func FlameGraph(rdbFilename string, port int, separator ...string) (chan<- struct{}, error) {
+func FlameGraph(rdbFilename string, port int, separators []string, options ...interface{}) (chan<- struct{}, error) {
 	if rdbFilename == "" {
 		return nil, errors.New("src file path is required")
 	}
@@ -30,14 +30,27 @@ func FlameGraph(rdbFilename string, port int, separator ...string) (chan<- struc
 	defer func() {
 		_ = rdbFile.Close()
 	}()
-	p := core.NewDecoder(rdbFile)
+	var regexOpt RegexOption
+	for _, opt := range options {
+		switch o := opt.(type) {
+		case RegexOption:
+			regexOpt = o
+		}
+	}
+	var dec decoder = core.NewDecoder(rdbFile)
+	if regexOpt != nil {
+		dec, err = regexWrapper(dec, *regexOpt)
+		if err != nil {
+			return nil, err
+		}
+	}
 	root := &d3flame.FlameItem{
 		Children: make(map[string]*d3flame.FlameItem),
 	}
 	var count int
-	err = p.Parse(func(object model.RedisObject) bool {
+	err = dec.Parse(func(object model.RedisObject) bool {
 		count++
-		addObject(root, separator, object)
+		addObject(root, separators, object)
 		return true
 	})
 	if err != nil {
