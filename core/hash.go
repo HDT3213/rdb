@@ -149,3 +149,77 @@ func (dec *Decoder) readZipListHash() (map[string][]byte, error) {
 	}
 	return m, nil
 }
+
+func (enc *Encoder) WriteHashMapObject(key string, hash map[string][]byte, options ...interface{}) error {
+	err := enc.beforeWriteObject(options...)
+	if err != nil {
+		return err
+	}
+	ok, err := enc.tryWriteZipListHashMap(key, hash, options...)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		err = enc.writeHashEncoding(key, hash, options...)
+		if err != nil {
+			return err
+		}
+	}
+	enc.state = writtenObjectState
+	return nil
+}
+
+func (enc *Encoder) writeHashEncoding(key string, hash map[string][]byte, options ...interface{}) error {
+	err := enc.write([]byte{typeHash})
+	if err != nil {
+		return err
+	}
+	err = enc.writeString(key)
+	if err != nil {
+		return err
+	}
+	err = enc.writeLength(uint64(len(hash)))
+	if err != nil {
+		return err
+	}
+	for field, value := range hash {
+		err = enc.writeString(field)
+		if err != nil {
+			return err
+		}
+		err = enc.writeString(string(value))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (enc *Encoder) tryWriteZipListHashMap(key string, hash map[string][]byte, options ...interface{}) (bool, error) {
+	if len(hash) > enc.hashZipListOpt.getMaxEntries() {
+		return false, nil
+	}
+	maxValue := enc.hashZipListOpt.getMaxValue()
+	for _, v := range hash {
+		if len(v) > maxValue {
+			return false, nil
+		}
+	}
+	err := enc.write([]byte{typeHashZipList})
+	if err != nil {
+		return true, err
+	}
+	err = enc.writeString(key)
+	if err != nil {
+		return true, err
+	}
+	entries := make([]string, 0, len(hash)*2)
+	for k, v := range hash {
+		entries = append(entries, k, string(v))
+	}
+	err = enc.writeZipList(entries)
+	if err != nil {
+		return true, err
+	}
+	return true, nil
+}
