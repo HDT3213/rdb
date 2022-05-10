@@ -17,6 +17,10 @@ const (
 	HashType = model.HashType
 	// ZSetType is redis sorted set
 	ZSetType = model.ZSetType
+	// AuxType is redis metadata key-value pair
+	AuxType = model.AuxType
+	// DBSizeType is for RDB_OPCODE_RESIZEDB
+	DBSizeType = model.DBSizeType
 )
 
 type (
@@ -32,6 +36,10 @@ type (
 	HashObject = model.HashObject
 	// ZSetObject stores a sorted set object
 	ZSetObject = model.ZSetObject
+	// AuxObject stores redis metadata
+	AuxObject = model.AuxObject
+	// DBSizeObject stores db size metadata
+	DBSizeObject = model.DBSizeObject
 )
 
 var (

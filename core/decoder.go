@@ -18,6 +18,8 @@ type Decoder struct {
 	input     *bufio.Reader
 	readCount int
 	buffer    []byte
+
+	withSpecialOpCode bool
 }
 
 // NewDecoder creates a new RDB decoder
@@ -26,6 +28,12 @@ func NewDecoder(reader io.Reader) *Decoder {
 	parser.input = bufio.NewReader(reader)
 	parser.buffer = make([]byte, 8)
 	return parser
+}
+
+// WithSpecialOpCode enables returning model.AuxObject to callback
+func (dec *Decoder) WithSpecialOpCode() *Decoder {
+	dec.withSpecialOpCode = true
+	return dec
 }
 
 var magicNumber = []byte("REDIS")
@@ -234,28 +242,49 @@ func (dec *Decoder) parse(cb func(object model.RedisObject) bool) error {
 			expireMs = int64(binary.LittleEndian.Uint64(dec.buffer))
 			continue
 		} else if b == opCodeResizeDB {
-			_, _, err := dec.readLength()
+			keyCount, _, err := dec.readLength()
 			if err != nil {
 				return err
 			}
-			_, _, err = dec.readLength()
+			ttlCount, _, err := dec.readLength()
 			if err != nil {
 				err = errors.New("Parse Aux value failed: " + err.Error())
 				break
 			}
-			// todo
+			if dec.withSpecialOpCode {
+				obj := &model.DBSizeObject{
+					BaseObject: &model.BaseObject{},
+				}
+				obj.DB = dbIndex
+				obj.KeyCount = keyCount
+				obj.TTLCount = ttlCount
+				tbc := cb(obj)
+				if !tbc {
+					break
+				}
+			}
 			continue
 		} else if b == opCodeAux {
-			_, err := dec.readString()
+			key, err := dec.readString()
 			if err != nil {
 				return err
 			}
-			_, err = dec.readString()
+			value, err := dec.readString()
 			if err != nil {
 				err = errors.New("Parse Aux value failed: " + err.Error())
 				break
 			}
-			// todo: return aux
+			if dec.withSpecialOpCode {
+				obj := &model.AuxObject{
+					BaseObject: &model.BaseObject{},
+				}
+				obj.Key = string(key)
+				obj.Value = string(value)
+				tbc := cb(obj)
+				if !tbc {
+					break
+				}
+			}
 			continue
 		} else if b == opCodeFreq {
 			_, err = dec.readByte()
@@ -289,8 +318,8 @@ func (dec *Decoder) parse(cb func(object model.RedisObject) bool) error {
 		}
 		base.Size = dec.readCount - begPos + keySize
 		base.Type = obj.GetType()
-		toBeContinued := cb(obj)
-		if !toBeContinued {
+		tbc := cb(obj)
+		if !tbc {
 			break
 		}
 	}

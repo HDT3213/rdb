@@ -16,6 +16,10 @@ const (
 	HashType = "hash"
 	// ZSetType is redis sorted set
 	ZSetType = "zset"
+	// AuxType is redis metadata key-value pair
+	AuxType = "aux"
+	// DBSizeType is for RDB_OPCODE_RESIZEDB
+	DBSizeType = "dbsize"
 )
 
 // CallbackFunc process redis object
@@ -210,4 +214,39 @@ func (o *ZSetObject) GetType() string {
 // GetElemCount returns number of elements in list/set/hash/zset
 func (o *ZSetObject) GetElemCount() int {
 	return len(o.Entries)
+}
+
+// AuxObject stores redis metadata
+type AuxObject struct {
+	*BaseObject
+	Value string
+}
+
+// GetType returns redis object type
+func (o *AuxObject) GetType() string {
+	return AuxType
+}
+
+// MarshalJSON marshal []byte as string
+func (o *AuxObject) MarshalJSON() ([]byte, error) {
+	o2 := struct {
+		*BaseObject
+		Value string `json:"value"`
+	}{
+		BaseObject: o.BaseObject,
+		Value:      string(o.Value),
+	}
+	return json.Marshal(o2)
+}
+
+// DBSizeObject stores db size metadata
+type DBSizeObject struct {
+	*BaseObject
+	KeyCount uint64
+	TTLCount uint64
+}
+
+// GetType returns redis object type
+func (o *DBSizeObject) GetType() string {
+	return DBSizeType
 }
