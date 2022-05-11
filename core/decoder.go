@@ -310,6 +310,7 @@ func (dec *Decoder) parse(cb func(object model.RedisObject) bool) error {
 		if expireMs > 0 {
 			expiration := time.Unix(0, expireMs*int64(time.Millisecond))
 			base.Expiration = &expiration
+			expireMs = 0 // reset expire ms
 		}
 		begPos = dec.readCount
 		obj, err := dec.readObject(b, base)
