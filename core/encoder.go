@@ -89,6 +89,7 @@ var stateChanges = map[string]map[string]struct{}{ // state -> allow next states
 	writtenEndState: {},
 }
 
+// NewEncoder creates an encoder instance
 func NewEncoder(writer io.Writer) *Encoder {
 	crcTab := crc64.MakeTable(crc64.ISO)
 	return &Encoder{
@@ -146,7 +147,7 @@ func (enc *Encoder) write(p []byte) error {
 	return nil
 }
 
-var rdbHeader = []byte("REDIS0008")
+var rdbHeader = []byte("REDIS0003")
 
 func (enc *Encoder) validateStateChange(toState string) bool {
 	_, ok := stateChanges[enc.state][toState]
@@ -228,10 +229,12 @@ func (enc *Encoder) WriteEnd() error {
 	if err != nil {
 		return err
 	}
-	_, err = enc.writer.Write(enc.crc.Sum(nil))
+	checkSum := enc.crc.Sum(nil)
+	_, err = enc.writer.Write(checkSum)
 	if err != nil {
 		return fmt.Errorf("write crc sum failed: %v", err)
 	}
+	enc.writer.Write([]byte{0x0a}) // write LF
 	enc.state = writtenEndState
 	return nil
 }
