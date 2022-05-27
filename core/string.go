@@ -142,7 +142,7 @@ func (dec *Decoder) readLiteralFloat() (float64, error) {
 	if err != nil {
 		return 0, err
 	}
-	str := string(buf)
+	str := unsafeBytes2Str(buf)
 	val, err := strconv.ParseFloat(str, 64)
 	if err != nil {
 		return 0, fmt.Errorf("")
@@ -296,7 +296,7 @@ func (enc *Encoder) WriteStringObject(key string, value []byte, options ...inter
 	if err != nil {
 		return err
 	}
-	err = enc.writeString(string(value))
+	err = enc.writeString(unsafeBytes2Str(value))
 	if err != nil {
 		return err
 	}

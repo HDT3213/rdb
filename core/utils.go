@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"math/rand"
+	"unsafe"
 )
 
 func readBytes(buf []byte, cursor *int, size int) ([]byte, error) {
@@ -68,4 +69,8 @@ func RandString(n int) string {
 		b[i] = letters[rand.Intn(len(letters))]
 	}
 	return string(b)
+}
+
+func unsafeBytes2Str(b []byte) string {
+	return *(*string)(unsafe.Pointer(&b))
 }

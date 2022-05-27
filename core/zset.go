@@ -26,7 +26,7 @@ func (dec *Decoder) readZSet(zset2 bool) ([]*model.ZSetEntry, error) {
 			return nil, err
 		}
 		entries = append(entries, &model.ZSetEntry{
-			Member: string(member),
+			Member: unsafeBytes2Str(member),
 			Score:  score,
 		})
 	}
@@ -50,12 +50,12 @@ func (dec *Decoder) readZipListZSet() ([]*model.ZSetEntry, error) {
 		if err != nil {
 			return nil, err
 		}
-		score, err := strconv.ParseFloat(string(scoreLiteral), 64)
+		score, err := strconv.ParseFloat(unsafeBytes2Str(scoreLiteral), 64)
 		if err != nil {
 			return nil, err
 		}
 		entries = append(entries, &model.ZSetEntry{
-			Member: string(member),
+			Member: unsafeBytes2Str(member),
 			Score:  score,
 		})
 	}

@@ -183,7 +183,7 @@ func (enc *Encoder) tryWriteListZipList(key string, values [][]byte, options ...
 		if len(v) > maxValue {
 			return false, nil
 		}
-		strList = append(strList, string(v))
+		strList = append(strList, unsafeBytes2Str(v))
 	}
 	err := enc.write([]byte{typeListZipList})
 	if err != nil {
@@ -205,7 +205,7 @@ func (enc *Encoder) writeQuickList(key string, values [][]byte, options ...inter
 	pageSize := 0
 	var curPage []string
 	for _, value := range values {
-		curPage = append(curPage, string(value))
+		curPage = append(curPage, unsafeBytes2Str(value))
 		pageSize += len(value)
 		if pageSize >= enc.listZipListSize {
 			pageSize = 0
@@ -310,5 +310,5 @@ func (enc *Encoder) writeZipList(values []string) error {
 	binary.LittleEndian.PutUint32(buf[0:4], uint32(zlBytes))
 	binary.LittleEndian.PutUint32(buf[4:8], uint32(zlTail))
 	binary.LittleEndian.PutUint16(buf[8:10], uint16(len(values)))
-	return enc.writeNanString(string(buf))
+	return enc.writeNanString(unsafeBytes2Str(buf))
 }

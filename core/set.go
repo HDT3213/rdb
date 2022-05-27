@@ -94,7 +94,7 @@ func (enc *Encoder) writeSetEncoding(key string, values [][]byte) error {
 		return err
 	}
 	for _, value := range values {
-		err = enc.writeString(string(value))
+		err = enc.writeString(unsafeBytes2Str(value))
 		if err != nil {
 			return err
 		}
@@ -107,7 +107,7 @@ func (enc *Encoder) tryWriteIntSetEncoding(key string, values [][]byte) (bool, e
 	min := int64(math.MaxInt64)
 	intList := make([]int64, len(values))
 	for i, v := range values {
-		str := string(v)
+		str := unsafeBytes2Str(v)
 		intV, err := strconv.ParseInt(str, 10, 64)
 		if err != nil {
 			return false, nil
@@ -154,7 +154,7 @@ func (enc *Encoder) tryWriteIntSetEncoding(key string, values [][]byte) (bool, e
 			buf = append(buf, enc.buffer...)
 		}
 	}
-	err = enc.writeNanString(string(buf))
+	err = enc.writeNanString(unsafeBytes2Str(buf))
 	if err != nil {
 		return true, err
 	}

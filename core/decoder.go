@@ -278,8 +278,8 @@ func (dec *Decoder) parse(cb func(object model.RedisObject) bool) error {
 				obj := &model.AuxObject{
 					BaseObject: &model.BaseObject{},
 				}
-				obj.Key = string(key)
-				obj.Value = string(value)
+				obj.Key = unsafeBytes2Str(key)
+				obj.Value = unsafeBytes2Str(value)
 				tbc := cb(obj)
 				if !tbc {
 					break
@@ -305,7 +305,7 @@ func (dec *Decoder) parse(cb func(object model.RedisObject) bool) error {
 		keySize := dec.readCount - begPos
 		base := &model.BaseObject{
 			DB:  dbIndex,
-			Key: string(key),
+			Key: unsafeBytes2Str(key),
 		}
 		if expireMs > 0 {
 			expiration := time.Unix(0, expireMs*int64(time.Millisecond))

@@ -6,40 +6,35 @@
 <br>
 [![Mentioned in Awesome Go](https://awesome.re/mentioned-badge-flat.svg)](https://github.com/avelino/awesome-go)
 
-[中文版](https://github.com/HDT3213/rdb/blob/master/README_CN.md)
+[English](https://github.com/HDT3213/rdb/blob/master/README.md)
 
-This is a golang implemented Redis RDB parser for secondary development and memory analysis.
+这是一个可以用于二次开发和内存分析的 RDB 文件分析工具，它具备下列能力：
+- 为 RDB 文件生成内存用量报告
+- 将 RDB 文件中键值对数据转换为 JSON 格式
+- 将 RDB 文件转换为 AOF 文件（即 Redis 序列化协议）
+- 寻找 RDB 文件中大键值对
+- 根据 RDB 文件绘制内存火焰图，用来分析哪类键值对占用了最多内存
+- 通过 API 遍历 RDB 文件内容，自定义用途
+- 生成 RDB 文件
 
-It provides abilities to:
+支持 RDB 文件版本： 1 <= version <= 9
 
-- Generate memory report for rdb file
-- Convert RDB files to JSON
-- Convert RDB files to Redis Serialization Protocol (or AOF file)
-- Find the biggest N keys in RDB files
-- Draw FlameGraph to analysis which kind of keys occupied most memory
-- Customize data usage
-- Generate RDB file
+您可以在这里阅读 RDB 文件格式的详尽介绍：[Golang 实现 Redis(11): RDB 文件格式](https://www.cnblogs.com/Finley/p/16251360.html)
 
-Support RDB version: 1 <= version <= 9
+# 安装
 
-If you read Chinese, you could find a thorough introduction to the RDB file format here: [Golang 实现 Redis(11): RDB 文件格式](https://www.cnblogs.com/Finley/p/16251360.html)
+如果您的电脑上安装 go 语言运行环境，可以使用 go get 安装本工具:
 
-Thanks sripathikrishnan for his [redis-rdb-tools](https://github.com/sripathikrishnan/redis-rdb-tools)
-
-# Install
-
-If you have installed `go` on your compute, just simply use:
-
-```
+```bash
 go get github.com/hdt3213/rdb
 ```
 
-Or, you can download executable binary file from [releases](https://github.com/HDT3213/rdb/releases) and put its path to
-PATH environment.
+或者您可以在 [releases](https://github.com/HDT3213/rdb/releases) 页面下载可执行文件，然后将它放入 PATH 变量中的目录内。
 
-use `rdb` command in terminal, you can see it's manual
+在终端中输入 rdb 命令即可获得本工具的使用手册：
 
 ```
+$ rdb
 This is a tool to parse Redis' RDB files
 Options:
   -c command, including: json/memory/aof
@@ -64,23 +59,23 @@ parameters between '[' and ']' is optional
   rdb -c flamegraph [-port 16379] [-sep :] dump.rdb
 ```
 
-# Convert to Json
+# 转换为 JSON 格式
 
-Usage:
+用法：
 
 ```
 rdb -c json -o <output_path> <source_path>
 ```
 
-example:
+示例：
 
 ```
 rdb -c json -o intset_16.json cases/intset_16.rdb
 ```
 
-You can get some rdb examples in [cases](https://github.com/HDT3213/rdb/tree/master/cases)
+本仓库的 [cases](https://github.com/HDT3213/rdb/tree/master/cases) 目录中准备了一些示例 RDB 文件，可供您进行测试。
 
-The examples for json result:
+转换出的 JSON 结果示例：
 
 ```json
 [
@@ -93,21 +88,23 @@ The examples for json result:
 ]
 ```
 
-# Generate Memory Report
+# 生成内存用量报告
 
-RDB uses rdb encoded size to estimate redis memory usage.
+本工具使用 RDB 编码后的大小来估算键值对占用的内存大小。
+
+用法：
 
 ```
 rdb -c memory -o <output_path> <source_path>
 ```
 
-Example:
+示例：
 
 ```
 rdb -c memory -o mem.csv cases/memory.rdb
 ```
 
-The examples for csv result:
+内存报告示例：
 
 ```csv
 database,key,type,size,size_readable,element_count
@@ -120,21 +117,21 @@ database,key,type,size,size_readable,element_count
 0,set,set,39,39B,2
 ```
 
-# Find The Biggest Keys
+# 寻找最大的键值对
 
-RDB can find biggest N keys in file
+本工具可以用来寻找 RDB 文件中最大的 N 个键值对。用法：
 
 ```
 rdb -c bigkey -n <result_number> <source_path>
 ```
 
-Example:
+示例：
 
 ```
 rdb -c bigkey -n 5 cases/memory.rdb
 ```
 
-The examples for csv result:
+结果示例：
 
 ```csv
 database,key,type,size,size_readable,element_count
@@ -145,21 +142,21 @@ database,key,type,size,size_readable,element_count
 0,set,set,39,39B,2
 ```
 
-# Convert to AOF
+# 转换为 AOF 文件
 
-Usage:
+用法：
 
 ```
 rdb -c aof -o <output_path> <source_path>
 ```
 
-Example:
+示例：
 
 ```
 rdb -c aof -o mem.aof cases/memory.rdb
 ```
 
-The examples for aof result:
+输出的 AOF 文件示例：
 
 ```
 *3
@@ -171,41 +168,45 @@ $7
 aaaaaaa
 ```
 
-# Flame Graph
+# 火焰图
 
-In many cases there is not a few very large key but lots of small keys that occupied most memory.
+在很多时候并不是少量的大键值对占据了大部分内存，而是数量巨大的小键值对消耗了很多内存。目前市面上尚无分析工具可以有效处理这个问题。
 
-RDB tool could separate keys by the given delimeters, then aggregate keys with same prefix.
+很多企业要求使用 Redis key 采用类似于 `user:basic.info:{userid}` 的命名规范，所以我们可以使用分隔符将 key 拆分并将拥有相同前缀的 key 聚合在一起。
 
-Finally RDB tool presents the result as flame graph, with which you could find out which kind of keys consumed most
-memory.
+最后我们将聚合的结果以火焰图的方式呈现可以直观地看出哪类键值对消耗内存过多，进而优化缓存和逐出策略节约内存开销。
 
 ![](https://s2.loli.net/2022/03/27/eNGvVIdAuWp8EhT.png)
 
-In this example, the keys of pattern `Comment:*` use 8.463% memory.
+在上图示例中，`Comment:*` 模式的键值对消耗了 8.463% 内存.
 
-Usage:
+用法：
 
 ```
 rdb -c flamegraph [-port <port>] [-sep <separator1>] [-sep <separator2>] <source_path>
 ```
 
-Example:
+示例:
 
 ```
 rdb -c flamegraph -port 16379 -sep : dump.rdb
 ```
 
-# Regex Filter
+# 正则过滤器
 
-RDB tool supports using regex expression to filter keys.
+本工具支持使用正则表达式过滤自己关心的键值对：
 
-Example:
-```rdb
+示例:
+
+```bash
 rdb -c json -o regex.json -regex '^l.*' cases/memory.rdb
 ```
 
-# Customize data usage
+# 自定义用途
+
+除了命令行工具之外，您可以在自己的项目中引入 hdt3213/rdb/parser 包，自行决定如何处理 RDB 中的数据。
+
+示例：
 
 ```go
 package main
@@ -248,9 +249,9 @@ func main() {
 }
 ```
 
-# Generate RDB file
+# 生成 RDB 文件
 
-This library can generate RDB file: 
+除了解析之外，本项目也可以用于生成 RDB 文件：
 
 ```go
 package main
@@ -340,7 +341,7 @@ func main() {
 
 # Benchmark
 
-Tested on MacBook Pro (16-inch, 2019) 2.6 GHz 6cores Intel Core i7, using  a 1.3 GB RDB file encoded with v9 format from Redis 5.0 in production environment.
+在 MacBook Pro (16-inch, 2019) 2.6 GHz 六核 Intel Core i7 笔记本上，使用从生产环境的 Redis 5.0 上获得 1.3 GB 大小使用 v9 编码的 RDB 文件进行测试：
 
 |usage|elapsed|speed|
 |:-:|:-:|:-:|

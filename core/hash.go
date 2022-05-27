@@ -24,7 +24,7 @@ func (dec *Decoder) readHashMap() (map[string][]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		m[string(field)] = value
+		m[unsafeBytes2Str(field)] = value
 	}
 	return m, nil
 }
@@ -56,7 +56,7 @@ func (dec *Decoder) readZipMapHash() (map[string][]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		field := string(fieldB)
+		field := unsafeBytes2Str(fieldB)
 		value, err := readZipMapEntry(buf, &cursor, true)
 		if err != nil {
 			return nil, err
@@ -145,7 +145,7 @@ func (dec *Decoder) readZipListHash() (map[string][]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		m[string(key)] = val
+		m[unsafeBytes2Str(key)] = val
 	}
 	return m, nil
 }
@@ -187,7 +187,7 @@ func (enc *Encoder) writeHashEncoding(key string, hash map[string][]byte, option
 		if err != nil {
 			return err
 		}
-		err = enc.writeString(string(value))
+		err = enc.writeString(unsafeBytes2Str(value))
 		if err != nil {
 			return err
 		}
@@ -215,7 +215,7 @@ func (enc *Encoder) tryWriteZipListHashMap(key string, hash map[string][]byte, o
 	}
 	entries := make([]string, 0, len(hash)*2)
 	for k, v := range hash {
-		entries = append(entries, k, string(v))
+		entries = append(entries, k, unsafeBytes2Str(v))
 	}
 	err = enc.writeZipList(entries)
 	if err != nil {
