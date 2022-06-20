@@ -86,13 +86,13 @@ func (dec *Decoder) readString() ([]byte, error) {
 		switch length {
 		case encodeInt8:
 			b, err := dec.readByte()
-			return []byte(strconv.Itoa(int(b))), err
+			return []byte(strconv.Itoa(int(int8(b)))), err
 		case encodeInt16:
 			b, err := dec.readUint16()
-			return []byte(strconv.Itoa(int(b))), err
+			return []byte(strconv.Itoa(int(int16(b)))), err
 		case encodeInt32:
 			b, err := dec.readUint32()
-			return []byte(strconv.Itoa(int(b))), err
+			return []byte(strconv.Itoa(int(int32(b)))), err
 		case encodeLZF:
 			return dec.readLZF()
 		default:

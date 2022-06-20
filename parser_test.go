@@ -98,7 +98,7 @@ func TestToJson(t *testing.T) {
 	}
 	for _, filename := range testCases {
 		srcRdb := filepath.Join("cases", filename+".rdb")
-		actualJSON := filepath.Join("tmp", filename+".json")
+		actualJSON := filepath.Join("cases", filename+".json")
 		expectJSON := filepath.Join("cases", filename+".json")
 		err = helper.ToJsons(srcRdb, actualJSON)
 		if err != nil {
