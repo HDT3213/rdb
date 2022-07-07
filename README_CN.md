@@ -37,7 +37,7 @@ go get github.com/hdt3213/rdb
 $ rdb
 This is a tool to parse Redis' RDB files
 Options:
-  -c command, including: json/memory/aof
+  -c command, including: json/memory/aof/bigkey/flamegraph
   -o output file path
   -n number of result, using in 
   -port listen port for flame graph web service
