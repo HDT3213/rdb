@@ -291,11 +291,13 @@ func (dec *Decoder) parse(cb func(object model.RedisObject) bool) error {
 			if err != nil {
 				return err
 			}
+			continue
 		} else if b == opCodeIdle {
 			_, _, err = dec.readLength()
 			if err != nil {
 				return err
 			}
+			continue
 		}
 		begPos := dec.readCount
 		key, err := dec.readString()
