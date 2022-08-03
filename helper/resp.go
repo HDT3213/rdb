@@ -3,6 +3,7 @@ package helper
 import (
 	"bytes"
 	"github.com/hdt3213/rdb/model"
+	"io"
 	"strconv"
 )
 
@@ -140,4 +141,34 @@ func CmdLinesToResp(cmds []CmdLine) []byte {
 		buf.Write(resp)
 	}
 	return buf.Bytes()
+}
+
+// WriteObjectToResp convert object to resp and write
+func WriteObjectToResp(w io.Writer, obj model.RedisObject) error {
+	var err error
+	cmdLines := ObjectToCmd(obj)
+
+	for _, cmdLine := range cmdLines {
+		argLen := len(cmdLine)
+		respBytes := make([][]byte, 0)
+		respBytes = append(respBytes, []byte("*"+strconv.Itoa(argLen)+crlf))
+
+		for _, arg := range cmdLine {
+			if arg == nil {
+				respBytes = append(respBytes, []byte("$-1"+crlf))
+				continue
+			}
+			respBytes = append(respBytes, []byte("$"+strconv.Itoa(len(arg))+crlf))
+			// the arg may be a large key or value
+			respBytes = append(respBytes, arg)
+			respBytes = append(respBytes, []byte(crlf))
+		}
+
+		for _, bytes := range respBytes {
+			if _, err = w.Write(bytes); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
