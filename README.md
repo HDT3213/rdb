@@ -31,7 +31,7 @@ Thanks sripathikrishnan for his [redis-rdb-tools](https://github.com/sripathikri
 If you have installed `go` on your compute, just simply use:
 
 ```
-go get github.com/hdt3213/rdb
+go install github.com/hdt3213/rdb@latest
 ```
 
 Or, you can download executable binary file from [releases](https://github.com/HDT3213/rdb/releases) and put its path to

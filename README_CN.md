@@ -26,7 +26,7 @@
 如果您的电脑上安装 go 语言运行环境，可以使用 go get 安装本工具:
 
 ```bash
-go get github.com/hdt3213/rdb
+go install github.com/hdt3213/rdb@latest
 ```
 
 或者您可以在 [releases](https://github.com/HDT3213/rdb/releases) 页面下载可执行文件，然后将它放入 PATH 变量中的目录内。
