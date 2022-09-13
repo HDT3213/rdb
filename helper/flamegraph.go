@@ -45,6 +45,7 @@ func FlameGraph(rdbFilename string, port int, separators []string, options ...in
 		}
 	}
 	root := &d3flame.FlameItem{
+		Name:     "root",
 		Children: make(map[string]*d3flame.FlameItem),
 	}
 	var count int
@@ -56,6 +57,11 @@ func FlameGraph(rdbFilename string, port int, separators []string, options ...in
 	if err != nil {
 		return nil, err
 	}
+	totalSize := 0
+	for _, v := range root.Children {
+		totalSize += v.Value
+	}
+	root.Value = totalSize
 	if count >= TrimThreshold {
 		trimData(root)
 	}

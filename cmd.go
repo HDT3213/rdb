@@ -99,6 +99,10 @@ func main() {
 		}
 	case "flamegraph":
 		_, err = helper.FlameGraph(src, port, seps, options...)
+		if err != nil {
+			fmt.Printf("error: %v\n", err)
+			return
+		}
 		<-make(chan struct{})
 	default:
 		println("unknown command")

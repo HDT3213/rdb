@@ -110,13 +110,20 @@ const html = `
 	
 	
 		// Example on how to use custom tooltips using d3-tip.
-		// var tip = d3.tip()
-		//   .direction("s")
-		//   .offset([8, 0])
-		//   .attr('class', 'd3-flame-graph-tip')
-		//   .html(function(d) { return "name: " + d.data.name + ", value: " + d.data.value; });
+
+
+		function humanFileSize(size) {
+			var i = Math.floor( Math.log(size) / Math.log(1024) );
+			return ( size / Math.pow(1024, i) ).toFixed(2) * 1 + ' ' + ['Bytes', 'kB', 'MB', 'GB', 'TB'][i];
+		};
+
+		var tip = d3.tip()
+		  .direction("s")
+		  .offset([8, 0])
+		  .attr('class', 'd3-flame-graph-tip')
+		  .html(function(d) { var per = (100*(d.x1 - d.x0)).toFixed(2); return d.data.n + "(" + per+ "%, " + humanFileSize(d.data.v) +  ")"; });
 	
-		// flameGraph.tooltip(tip);
+		flameGraph.tooltip(tip);
 	
 		var details = document.getElementById("details");
 		flameGraph.setDetailsElement(details);
