@@ -121,7 +121,10 @@ const html = `
 		  .direction("s")
 		  .offset([8, 0])
 		  .attr('class', 'd3-flame-graph-tip')
-		  .html(function(d) { var per = (100*(d.x1 - d.x0)).toFixed(2); return d.data.n + "(" + per+ "%, " + humanFileSize(d.data.v) +  ")"; });
+		  .html(function(d) { 
+				var per = (100*(d.x1 - d.x0)).toFixed(2); 
+				return d.data.n + "(" + per+ "%, " + humanFileSize(d.data.v) +  ")"; 
+		  });
 	
 		flameGraph.tooltip(tip);
 	
@@ -129,10 +132,15 @@ const html = `
 		flameGraph.setDetailsElement(details);
 	
 		// Example on how to use custom labels
-		// var label = function(d) {
-		//  return "name: " + d.name + ", value: " + d.value;
-		// }
-		// flameGraph.label(label);
+		var label = function(d) {
+		 var per = (100*(d.x1 - d.x0)).toFixed(2);
+		 if (d.data.v > 1024) {
+	       return d.data.n + "(" + per+ "%, " + humanFileSize(d.data.v) + ", " + d.data.v + "bytes)";
+         }
+	     return d.data.n + "(" + per+ "%, " + d.data.v + "bytes)"; 
+
+		}
+		flameGraph.label(label);
 	
 		// Example of how to set fixed chart height
 		// flameGraph.height(540);

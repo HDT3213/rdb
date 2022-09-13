@@ -40,7 +40,7 @@ var magicNumber = []byte("REDIS")
 
 const (
 	minVersion = 1
-	maxVersion = 9
+	maxVersion = 10
 )
 
 const (
