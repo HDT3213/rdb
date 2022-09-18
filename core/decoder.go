@@ -71,6 +71,9 @@ const (
 	typeHashZipList
 	typeListQuickList
 	typeStreamListPacks
+	typeHashListPack
+	typeZsetListPack
+	typeListQuickList2
 )
 
 // checkHeader checks whether input has valid RDB file header
@@ -161,6 +164,15 @@ func (dec *Decoder) readObject(flag byte, base *model.BaseObject) (model.RedisOb
 			BaseObject: base,
 			Values:     list,
 		}, nil
+	case typeListQuickList2:
+		list, err := dec.readQuickList2()
+		if err != nil {
+			return nil, err
+		}
+		return &model.ListObject{
+			BaseObject: base,
+			Values:     list,
+		}, nil
 	case typeHashZipMap:
 		m, err := dec.readZipMapHash()
 		if err != nil {
@@ -172,6 +184,15 @@ func (dec *Decoder) readObject(flag byte, base *model.BaseObject) (model.RedisOb
 		}, nil
 	case typeHashZipList:
 		m, err := dec.readZipListHash()
+		if err != nil {
+			return nil, err
+		}
+		return &model.HashObject{
+			BaseObject: base,
+			Hash:       m,
+		}, nil
+	case typeHashListPack:
+		m, err := dec.readListPackHash()
 		if err != nil {
 			return nil, err
 		}
@@ -199,6 +220,15 @@ func (dec *Decoder) readObject(flag byte, base *model.BaseObject) (model.RedisOb
 		}, nil
 	case typeZsetZipList:
 		entries, err := dec.readZipListZSet()
+		if err != nil {
+			return nil, err
+		}
+		return &model.ZSetObject{
+			BaseObject: base,
+			Entries:    entries,
+		}, nil
+	case typeZsetListPack:
+		entries, err := dec.readListPackZSet()
 		if err != nil {
 			return nil, err
 		}

@@ -62,6 +62,35 @@ func (dec *Decoder) readZipListZSet() ([]*model.ZSetEntry, error) {
 	return entries, nil
 }
 
+func (dec *Decoder) readListPackZSet() ([]*model.ZSetEntry, error) {
+	buf, err := dec.readString()
+	if err != nil {
+		return nil, err
+	}
+	cursor := 0
+	size := readListPackLength(buf, &cursor)
+	entries := make([]*model.ZSetEntry, 0, size)
+	for i := 0; i < size; i += 2 {
+		member, err := dec.readListPackEntry(buf, &cursor)
+		if err != nil {
+			return nil, err
+		}
+		scoreLiteral, err := dec.readListPackEntry(buf, &cursor)
+		if err != nil {
+			return nil, err
+		}
+		score, err := strconv.ParseFloat(unsafeBytes2Str(scoreLiteral), 64)
+		if err != nil {
+			return nil, err
+		}
+		entries = append(entries, &model.ZSetEntry{
+			Member: unsafeBytes2Str(member),
+			Score:  score,
+		})
+	}
+	return entries, nil
+}
+
 func (enc *Encoder) WriteZSetObject(key string, entries []*model.ZSetEntry, options ...interface{}) error {
 	err := enc.beforeWriteObject(options...)
 	if err != nil {
