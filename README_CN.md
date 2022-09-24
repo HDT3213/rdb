@@ -17,7 +17,7 @@
 - 通过 API 遍历 RDB 文件内容，自定义用途
 - 生成 RDB 文件
 
-支持 RDB 文件版本： 1 <= version <= 9
+支持 RDB 文件版本： 1 <= version <= 10(Redis 7.0)
 
 您可以在这里阅读 RDB 文件格式的详尽介绍：[Golang 实现 Redis(11): RDB 文件格式](https://www.cnblogs.com/Finley/p/16251360.html)
 
