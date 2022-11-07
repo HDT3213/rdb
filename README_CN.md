@@ -117,6 +117,30 @@ database,key,type,size,size_readable,element_count
 0,set,set,39,39B,2
 ```
 
+# 火焰图
+
+在很多时候并不是少量的大键值对占据了大部分内存，而是数量巨大的小键值对消耗了很多内存。目前市面上尚无分析工具可以有效处理这个问题。
+
+很多企业要求使用 Redis key 采用类似于 `user:basic.info:{userid}` 的命名规范，所以我们可以使用分隔符将 key 拆分并将拥有相同前缀的 key 聚合在一起。
+
+最后我们将聚合的结果以火焰图的方式呈现可以直观地看出哪类键值对消耗内存过多，进而优化缓存和逐出策略节约内存开销。
+
+![截屏2022-10-30 12.06.00.png](https://s2.loli.net/2022/11/08/HW9ZxGfeEzArUhM.png)
+
+在上图示例中，`Comment:*` 模式的键值对消耗了 8.463% 内存.
+
+用法：
+
+```
+rdb -c flamegraph [-port <port>] [-sep <separator1>] [-sep <separator2>] <source_path>
+```
+
+示例:
+
+```
+rdb -c flamegraph -port 16379 -sep : dump.rdb
+```
+
 # 寻找最大的键值对
 
 本工具可以用来寻找 RDB 文件中最大的 N 个键值对。用法：
@@ -166,30 +190,6 @@ $1
 s
 $7
 aaaaaaa
-```
-
-# 火焰图
-
-在很多时候并不是少量的大键值对占据了大部分内存，而是数量巨大的小键值对消耗了很多内存。目前市面上尚无分析工具可以有效处理这个问题。
-
-很多企业要求使用 Redis key 采用类似于 `user:basic.info:{userid}` 的命名规范，所以我们可以使用分隔符将 key 拆分并将拥有相同前缀的 key 聚合在一起。
-
-最后我们将聚合的结果以火焰图的方式呈现可以直观地看出哪类键值对消耗内存过多，进而优化缓存和逐出策略节约内存开销。
-
-![](https://s2.loli.net/2022/03/27/eNGvVIdAuWp8EhT.png)
-
-在上图示例中，`Comment:*` 模式的键值对消耗了 8.463% 内存.
-
-用法：
-
-```
-rdb -c flamegraph [-port <port>] [-sep <separator1>] [-sep <separator2>] <source_path>
-```
-
-示例:
-
-```
-rdb -c flamegraph -port 16379 -sep : dump.rdb
 ```
 
 # 正则过滤器

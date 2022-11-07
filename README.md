@@ -120,6 +120,31 @@ database,key,type,size,size_readable,element_count
 0,set,set,39,39B,2
 ```
 
+# Flame Graph
+
+In many cases there is not a few very large key but lots of small keys that occupied most memory.
+
+RDB tool could separate keys by the given delimeters, then aggregate keys with same prefix.
+
+Finally RDB tool presents the result as flame graph, with which you could find out which kind of keys consumed most
+memory.
+
+![截屏2022-10-30 12.06.00.png](https://s2.loli.net/2022/11/08/HW9ZxGfeEzArUhM.png)
+
+In this example, the keys of pattern `Comment:*` use 8.463% memory.
+
+Usage:
+
+```
+rdb -c flamegraph [-port <port>] [-sep <separator1>] [-sep <separator2>] <source_path>
+```
+
+Example:
+
+```
+rdb -c flamegraph -port 16379 -sep : dump.rdb
+```
+
 # Find The Biggest Keys
 
 RDB can find biggest N keys in file
@@ -169,31 +194,6 @@ $1
 s
 $7
 aaaaaaa
-```
-
-# Flame Graph
-
-In many cases there is not a few very large key but lots of small keys that occupied most memory.
-
-RDB tool could separate keys by the given delimeters, then aggregate keys with same prefix.
-
-Finally RDB tool presents the result as flame graph, with which you could find out which kind of keys consumed most
-memory.
-
-![](https://s2.loli.net/2022/03/27/eNGvVIdAuWp8EhT.png)
-
-In this example, the keys of pattern `Comment:*` use 8.463% memory.
-
-Usage:
-
-```
-rdb -c flamegraph [-port <port>] [-sep <separator1>] [-sep <separator2>] <source_path>
-```
-
-Example:
-
-```
-rdb -c flamegraph -port 16379 -sep : dump.rdb
 ```
 
 # Regex Filter
