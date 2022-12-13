@@ -1,8 +1,8 @@
 [
-{"db":0,"key":"int_value","size":12,"type":"string","value":"123"},
-{"db":0,"key":"ascii","size":17,"type":"string","value":"\u0000! ~0\n\t\rAb"},
-{"db":0,"key":"bin","size":19,"type":"string","value":"\u0000$ ~0\ufffd\n\ufffd\t\ufffd\rAb"},
-{"db":0,"key":"printable","size":18,"type":"string","value":"!+ Ab^~"},
-{"db":0,"key":"378","size":16,"type":"string","value":"int_key_name"},
-{"db":0,"key":"utf8","size":33,"type":"string","value":"בדיקה𐀏123עברית"}
+{"db":0,"key":"int_value","size":56,"type":"string","encoding":"string","value":"123"},
+{"db":0,"key":"ascii","size":64,"type":"string","encoding":"string","value":"\u0000! ~0\n\t\rAb"},
+{"db":0,"key":"bin","size":64,"type":"string","encoding":"string","value":"\u0000$ ~0\ufffd\n\ufffd\t\ufffd\rAb"},
+{"db":0,"key":"printable","size":72,"type":"string","encoding":"string","value":"!+ Ab^~"},
+{"db":0,"key":"378","size":56,"type":"string","encoding":"string","value":"int_key_name"},
+{"db":0,"key":"utf8","size":80,"type":"string","encoding":"string","value":"בדיקה𐀏123עברית"}
 ]

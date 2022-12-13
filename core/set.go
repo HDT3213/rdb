@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/hdt3213/rdb/model"
 	"math"
 	"sort"
 	"strconv"
@@ -25,16 +26,16 @@ func (dec *Decoder) readSet() ([][]byte, error) {
 	return values, nil
 }
 
-func (dec *Decoder) readIntSet() (result [][]byte, err error) {
+func (dec *Decoder) readIntSet() (result [][]byte, detail *model.IntsetDetail, err error) {
 	var buf []byte
 	buf, err = dec.readString()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	sizeBytes := buf[0:4]
 	intSize := int(binary.LittleEndian.Uint32(sizeBytes))
 	if intSize != 2 && intSize != 4 && intSize != 8 {
-		return nil, fmt.Errorf("unknown intset encoding: %d", intSize)
+		return nil, nil, fmt.Errorf("unknown intset encoding: %d", intSize)
 	}
 	lenBytes := buf[4:8]
 	cardinality := binary.LittleEndian.Uint32(lenBytes)
@@ -53,9 +54,12 @@ func (dec *Decoder) readIntSet() (result [][]byte, err error) {
 		case 4:
 			intString = strconv.FormatInt(int64(int32(binary.LittleEndian.Uint32(intBytes))), 10)
 		case 8:
-			intString = strconv.FormatInt(int64(int64(binary.LittleEndian.Uint64(intBytes))), 10)
+			intString = strconv.FormatInt(int64(binary.LittleEndian.Uint64(intBytes)), 10)
 		}
 		result = append(result, []byte(intString))
+	}
+	detail = &model.IntsetDetail{
+		RawStringSize: len(buf),
 	}
 	return
 }

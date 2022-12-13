@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/binary"
 	"errors"
+	"github.com/hdt3213/rdb/model"
 )
 
 /*
@@ -128,10 +129,10 @@ func countZipMapEntries(buf []byte, cursor *int) (int, error) {
 	return n, nil
 }
 
-func (dec *Decoder) readZipListHash() (map[string][]byte, error) {
+func (dec *Decoder) readZipListHash() (map[string][]byte, *model.ZiplistDetail, error) {
 	buf, err := dec.readString()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	cursor := 0
 	size := readZipListLength(buf, &cursor)
@@ -139,15 +140,18 @@ func (dec *Decoder) readZipListHash() (map[string][]byte, error) {
 	for i := 0; i < size; i += 2 {
 		key, err := dec.readZipListEntry(buf, &cursor)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		val, err := dec.readZipListEntry(buf, &cursor)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		m[unsafeBytes2Str(key)] = val
 	}
-	return m, nil
+	detail := &model.ZiplistDetail{
+		RawStringSize: len(buf),
+	}
+	return m, detail, nil
 }
 
 func (dec *Decoder) readListPackHash() (map[string][]byte, error) {
@@ -159,11 +163,11 @@ func (dec *Decoder) readListPackHash() (map[string][]byte, error) {
 	size := readListPackLength(buf, &cursor)
 	m := make(map[string][]byte)
 	for i := 0; i < size; i += 2 {
-		key, err := dec.readListPackEntry(buf, &cursor)
+		key, _, err := dec.readListPackEntry(buf, &cursor)
 		if err != nil {
 			return nil, err
 		}
-		val, err := dec.readListPackEntry(buf, &cursor)
+		val, _, err := dec.readListPackEntry(buf, &cursor)
 		if err != nil {
 			return nil, err
 		}

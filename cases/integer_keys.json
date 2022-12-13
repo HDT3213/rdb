@@ -1,8 +1,8 @@
 [
-{"db":0,"key":"183358245","size":29,"type":"string","value":"Positive 32 bit integer"},
-{"db":0,"key":"125","size":25,"type":"string","value":"Positive 8 bit integer"},
-{"db":0,"key":"-29477","size":27,"type":"string","value":"Negative 16 bit integer"},
-{"db":0,"key":"-123","size":25,"type":"string","value":"Negative 8 bit integer"},
-{"db":0,"key":"43947","size":29,"type":"string","value":"Positive 16 bit integer"},
-{"db":0,"key":"-183358245","size":29,"type":"string","value":"Negative 32 bit integer"}
+{"db":0,"key":"183358245","size":72,"type":"string","encoding":"string","value":"Positive 32 bit integer"},
+{"db":0,"key":"125","size":64,"type":"string","encoding":"string","value":"Positive 8 bit integer"},
+{"db":0,"key":"-29477","size":72,"type":"string","encoding":"string","value":"Negative 16 bit integer"},
+{"db":0,"key":"-123","size":64,"type":"string","encoding":"string","value":"Negative 8 bit integer"},
+{"db":0,"key":"43947","size":72,"type":"string","encoding":"string","value":"Positive 16 bit integer"},
+{"db":0,"key":"-183358245","size":72,"type":"string","encoding":"string","value":"Negative 32 bit integer"}
 ]

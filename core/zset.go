@@ -33,10 +33,10 @@ func (dec *Decoder) readZSet(zset2 bool) ([]*model.ZSetEntry, error) {
 	return entries, nil
 }
 
-func (dec *Decoder) readZipListZSet() ([]*model.ZSetEntry, error) {
+func (dec *Decoder) readZipListZSet() ([]*model.ZSetEntry, *model.ZiplistDetail, error) {
 	buf, err := dec.readString()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	cursor := 0
 	size := readZipListLength(buf, &cursor)
@@ -44,22 +44,25 @@ func (dec *Decoder) readZipListZSet() ([]*model.ZSetEntry, error) {
 	for i := 0; i < size; i += 2 {
 		member, err := dec.readZipListEntry(buf, &cursor)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		scoreLiteral, err := dec.readZipListEntry(buf, &cursor)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		score, err := strconv.ParseFloat(unsafeBytes2Str(scoreLiteral), 64)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		entries = append(entries, &model.ZSetEntry{
 			Member: unsafeBytes2Str(member),
 			Score:  score,
 		})
 	}
-	return entries, nil
+	detail := &model.ZiplistDetail{
+		RawStringSize: len(buf),
+	}
+	return entries, detail, nil
 }
 
 func (dec *Decoder) readListPackZSet() ([]*model.ZSetEntry, error) {
@@ -71,11 +74,11 @@ func (dec *Decoder) readListPackZSet() ([]*model.ZSetEntry, error) {
 	size := readListPackLength(buf, &cursor)
 	entries := make([]*model.ZSetEntry, 0, size)
 	for i := 0; i < size; i += 2 {
-		member, err := dec.readListPackEntry(buf, &cursor)
+		member, _, err := dec.readListPackEntry(buf, &cursor)
 		if err != nil {
 			return nil, err
 		}
-		scoreLiteral, err := dec.readListPackEntry(buf, &cursor)
+		scoreLiteral, _, err := dec.readListPackEntry(buf, &cursor)
 		if err != nil {
 			return nil, err
 		}

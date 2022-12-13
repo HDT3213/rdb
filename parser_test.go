@@ -154,7 +154,8 @@ func TestToJsonWithRegex(t *testing.T) {
 		t.Errorf("result is not equal")
 		return
 	}
-	err = helper.ToJsons(srcRdb, actualJSON, helper.WithRegexOption(`(i)\1`))
+	errJson := filepath.Join("tmp", "memory_regex_err.json")
+	err = helper.ToJsons(srcRdb, errJson, helper.WithRegexOption(`(i)\1`))
 	if err == nil {
 		t.Error("expect error")
 	}
@@ -226,7 +227,8 @@ func TestMemoryWithRegex(t *testing.T) {
 		t.Errorf("result is not equal")
 		return
 	}
-	err = helper.MemoryProfile(srcRdb, actualFile, helper.WithRegexOption(`(i)\1`))
+	errFile := filepath.Join("tmp", "memory_regex_err.csv")
+	err = helper.MemoryProfile(srcRdb, errFile, helper.WithRegexOption(`(i)\1`))
 	if err == nil {
 		t.Error("expect error")
 	}
@@ -264,7 +266,7 @@ func TestToAof(t *testing.T) {
 	if err == nil || err.Error() != "output file path is required" {
 		t.Error("failed when empty output")
 	}
-	err = helper.ToAOF("", "tmp/memory.rdb")
+	err = helper.ToAOF("", "tmp/err.rdb")
 	if err == nil || err.Error() != "src file path is required" {
 		t.Error("failed when empty output")
 	}
@@ -298,7 +300,8 @@ func TestToAofWithRegex(t *testing.T) {
 		t.Errorf("result is not equal")
 		return
 	}
-	err = helper.ToAOF(srcRdb, actualFile, helper.WithRegexOption(`(i)\1`))
+	errFile := filepath.Join("tmp", "memory_regex.err.aof")
+	err = helper.ToAOF(srcRdb, errFile, helper.WithRegexOption(`(i)\1`))
 	if err == nil {
 		t.Error("expect error")
 	}
@@ -386,7 +389,8 @@ func TestFindBiggestKeyWithRegex(t *testing.T) {
 		return
 	}
 
-	output, err = os.Create(actualFile)
+	errFile := filepath.Join("cases", "memory_regex.biggest.err.csv")
+	output, err = os.Create(errFile)
 	if err != nil {
 		t.Errorf("create output file failed: %v", err)
 		return

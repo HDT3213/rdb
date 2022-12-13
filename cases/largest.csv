@@ -1,6 +1,6 @@
 database,key,type,size,size_readable,element_count
-0,large,string,2056,2K,0
-0,list,list,66,66B,4
-0,hash,hash,64,64B,2
-0,zset,zset,57,57B,2
-0,set,set,39,39B,2
+0,large,string,2608,2.5K,0
+0,set,set,284,284B,2
+0,list,list,203,203B,4
+0,hash,hash,131,131B,2
+0,zset,zset,99,99B,2

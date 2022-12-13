@@ -1,3 +1,3 @@
 [
-{"db":0,"key":"zimap_doesnt_compress","size":47,"type":"hash","hash":{"MKD1G6":"2","YNNXK":"F7TI"}}
+{"db":0,"key":"zimap_doesnt_compress","size":276,"type":"hash","encoding":"zipmap","hash":{"MKD1G6":"2","YNNXK":"F7TI"}}
 ]

@@ -1,3 +1,3 @@
 [
-{"db":0,"key":"expires_ms_precision","expiration":"2022-12-25T18:11:12.573+08:00","size":49,"type":"string","value":"2022-12-25 10:11:12.573 UTC"}
+{"db":0,"key":"expires_ms_precision","expiration":"2022-12-25T18:11:12.573+08:00","size":128,"type":"string","encoding":"string","value":"2022-12-25 10:11:12.573 UTC"}
 ]

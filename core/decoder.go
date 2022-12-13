@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/hdt3213/rdb/memprofiler"
 	"github.com/hdt3213/rdb/model"
 	"io"
 	"strconv"
@@ -76,6 +77,25 @@ const (
 	typeListQuickList2
 )
 
+var typeNameMap = map[int]string{
+	typeString:          model.StringEncoding,
+	typeList:            model.ListEncoding,
+	typeSet:             model.SetEncoding,
+	typeZset:            model.ZSetEncoding,
+	typeHash:            model.HashEncoding,
+	typeZset2:           model.ZSet2Encoding,
+	typeHashZipMap:      model.ZipMapEncoding,
+	typeListZipList:     model.ZipListEncoding,
+	typeSetIntSet:       model.IntSetEncoding,
+	typeZsetZipList:     model.ZipListEncoding,
+	typeHashZipList:     model.ZipListEncoding,
+	typeListQuickList:   model.QuickListEncoding,
+	typeStreamListPacks: model.ListPackEncoding,
+	typeHashListPack:    model.ListPackEncoding,
+	typeZsetListPack:    model.ListPackEncoding,
+	typeListQuickList2:  model.QuickList2Encoding,
+}
+
 // checkHeader checks whether input has valid RDB file header
 func (dec *Decoder) checkHeader() error {
 	header := make([]byte, 9)
@@ -100,6 +120,7 @@ func (dec *Decoder) checkHeader() error {
 }
 
 func (dec *Decoder) readObject(flag byte, base *model.BaseObject) (model.RedisObject, error) {
+	base.Encoding = typeNameMap[int(flag)]
 	switch flag {
 	case typeString:
 		bs, err := dec.readString()
@@ -129,10 +150,11 @@ func (dec *Decoder) readObject(flag byte, base *model.BaseObject) (model.RedisOb
 			Members:    set,
 		}, nil
 	case typeSetIntSet:
-		set, err := dec.readIntSet()
+		set, extra, err := dec.readIntSet()
 		if err != nil {
 			return nil, err
 		}
+		base.Extra = extra
 		return &model.SetObject{
 			BaseObject: base,
 			Members:    set,
@@ -156,19 +178,21 @@ func (dec *Decoder) readObject(flag byte, base *model.BaseObject) (model.RedisOb
 			Values:     list,
 		}, nil
 	case typeListQuickList:
-		list, err := dec.readQuickList()
+		list, extra, err := dec.readQuickList()
 		if err != nil {
 			return nil, err
 		}
+		base.Extra = extra
 		return &model.ListObject{
 			BaseObject: base,
 			Values:     list,
 		}, nil
 	case typeListQuickList2:
-		list, err := dec.readQuickList2()
+		list, extra, err := dec.readQuickList2()
 		if err != nil {
 			return nil, err
 		}
+		base.Extra = extra
 		return &model.ListObject{
 			BaseObject: base,
 			Values:     list,
@@ -183,10 +207,11 @@ func (dec *Decoder) readObject(flag byte, base *model.BaseObject) (model.RedisOb
 			Hash:       m,
 		}, nil
 	case typeHashZipList:
-		m, err := dec.readZipListHash()
+		m, extra, err := dec.readZipListHash()
 		if err != nil {
 			return nil, err
 		}
+		base.Extra = extra
 		return &model.HashObject{
 			BaseObject: base,
 			Hash:       m,
@@ -219,10 +244,11 @@ func (dec *Decoder) readObject(flag byte, base *model.BaseObject) (model.RedisOb
 			Entries:    entries,
 		}, nil
 	case typeZsetZipList:
-		entries, err := dec.readZipListZSet()
+		entries, extra, err := dec.readZipListZSet()
 		if err != nil {
 			return nil, err
 		}
+		base.Extra = extra
 		return &model.ZSetObject{
 			BaseObject: base,
 			Entries:    entries,
@@ -329,12 +355,10 @@ func (dec *Decoder) parse(cb func(object model.RedisObject) bool) error {
 			}
 			continue
 		}
-		begPos := dec.readCount
 		key, err := dec.readString()
 		if err != nil {
 			return err
 		}
-		keySize := dec.readCount - begPos
 		base := &model.BaseObject{
 			DB:  dbIndex,
 			Key: unsafeBytes2Str(key),
@@ -344,12 +368,11 @@ func (dec *Decoder) parse(cb func(object model.RedisObject) bool) error {
 			base.Expiration = &expiration
 			expireMs = 0 // reset expire ms
 		}
-		begPos = dec.readCount
 		obj, err := dec.readObject(b, base)
 		if err != nil {
 			return err
 		}
-		base.Size = dec.readCount - begPos + keySize
+		base.Size = memprofiler.SizeOfObject(obj)
 		base.Type = obj.GetType()
 		tbc := cb(obj)
 		if !tbc {

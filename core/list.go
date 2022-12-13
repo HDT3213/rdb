@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/binary"
 	"errors"
+	"github.com/hdt3213/rdb/model"
 )
 
 const (
@@ -18,9 +19,6 @@ const (
 	zipInt64B = 0xc0 | 2<<4 //11100000
 
 	zipBigPrevLen = 0xfe
-
-	QuicklistNodeContainerPlain  = 1
-	QuicklistNodeContainerPacked = 2
 )
 
 func (dec *Decoder) readList() ([][]byte, error) {
@@ -40,51 +38,58 @@ func (dec *Decoder) readList() ([][]byte, error) {
 	return values, nil
 }
 
-func (dec *Decoder) readQuickList() ([][]byte, error) {
+func (dec *Decoder) readQuickList() ([][]byte, *model.QuicklistDetail, error) {
 	size, _, err := dec.readLength()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	entries := make([][]byte, 0)
+	detail := &model.QuicklistDetail{}
 	for i := 0; i < int(size); i++ {
 		page, err := dec.readZipList()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		entries = append(entries, page...)
+		detail.ZiplistStruct = append(detail.ZiplistStruct, page)
 	}
-	return entries, nil
+	return entries, detail, nil
 }
 
-func (dec *Decoder) readQuickList2() ([][]byte, error) {
+// readQuickList2 returns
+func (dec *Decoder) readQuickList2() ([][]byte, *model.Quicklist2Detail, error) {
 	size, _, err := dec.readLength()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	entries := make([][]byte, 0)
+	detail := &model.Quicklist2Detail{}
 	for i := 0; i < int(size); i++ {
 		length, _, err := dec.readLength()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		if length == QuicklistNodeContainerPlain {
+		if length == model.QuicklistNodeContainerPlain {
 			entry, err := dec.readString()
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			entries = append(entries, entry)
-		} else if length == QuicklistNodeContainerPacked {
-			page, err := dec.readListPack()
+			detail.NodeEncodings = append(detail.NodeEncodings, model.QuicklistNodeContainerPlain)
+		} else if length == model.QuicklistNodeContainerPacked {
+			page, lengths, err := dec.readListPack()
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			entries = append(entries, page...)
+			detail.NodeEncodings = append(detail.NodeEncodings, model.QuicklistNodeContainerPlain)
+			detail.ListPackEntrySize = append(detail.ListPackEntrySize, lengths)
 		} else {
-			return nil, errors.New("unknown quicklist node type")
+			return nil, nil, errors.New("unknown quicklist node type")
 		}
 
 	}
-	return entries, nil
+	return entries, detail, nil
 }
 
 func (enc *Encoder) WriteListObject(key string, values [][]byte, options ...interface{}) error {

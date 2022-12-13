@@ -1,8 +1,8 @@
 [
-{"db":0,"key":"abcd","size":10,"type":"string","value":"efgh"},
-{"db":0,"key":"foo","size":8,"type":"string","value":"bar"},
-{"db":0,"key":"bar","size":8,"type":"string","value":"baz"},
-{"db":0,"key":"abcdef","size":14,"type":"string","value":"abcdef"},
-{"db":0,"key":"longerstring","size":54,"type":"string","value":"thisisalongerstring.idontknowwhatitmeans"},
-{"db":0,"key":"abc","size":8,"type":"string","value":"def"}
+{"db":0,"key":"abcd","size":56,"type":"string","encoding":"string","value":"efgh"},
+{"db":0,"key":"foo","size":56,"type":"string","encoding":"string","value":"bar"},
+{"db":0,"key":"bar","size":56,"type":"string","encoding":"string","value":"baz"},
+{"db":0,"key":"abcdef","size":56,"type":"string","encoding":"string","value":"abcdef"},
+{"db":0,"key":"longerstring","size":104,"type":"string","encoding":"string","value":"thisisalongerstring.idontknowwhatitmeans"},
+{"db":0,"key":"abc","size":56,"type":"string","encoding":"string","value":"def"}
 ]
