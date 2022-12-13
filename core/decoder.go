@@ -76,6 +76,25 @@ const (
 	typeListQuickList2
 )
 
+var typeNameMap = map[int]string{
+	typeString:          model.StringEncoding,
+	typeList:            model.ListEncoding,
+	typeSet:             model.SetEncoding,
+	typeZset:            model.ZSetEncoding,
+	typeHash:            model.HashEncoding,
+	typeZset2:           model.ZSet2Encoding,
+	typeHashZipMap:      model.ZipMapEncoding,
+	typeListZipList:     model.ZipListEncoding,
+	typeSetIntSet:       model.IntSetEncoding,
+	typeZsetZipList:     model.ZipListEncoding,
+	typeHashZipList:     model.ZipListEncoding,
+	typeListQuickList:   model.QuickListEncoding,
+	typeStreamListPacks: model.ListPackEncoding,
+	typeHashListPack:    model.ListPackEncoding,
+	typeZsetListPack:    model.ListPackEncoding,
+	typeListQuickList2:  model.QuickList2Encoding,
+}
+
 // checkHeader checks whether input has valid RDB file header
 func (dec *Decoder) checkHeader() error {
 	header := make([]byte, 9)
@@ -100,6 +119,7 @@ func (dec *Decoder) checkHeader() error {
 }
 
 func (dec *Decoder) readObject(flag byte, base *model.BaseObject) (model.RedisObject, error) {
+	base.Encoding = typeNameMap[int(flag)]
 	switch flag {
 	case typeString:
 		bs, err := dec.readString()
@@ -156,10 +176,11 @@ func (dec *Decoder) readObject(flag byte, base *model.BaseObject) (model.RedisOb
 			Values:     list,
 		}, nil
 	case typeListQuickList:
-		list, err := dec.readQuickList()
+		list, extra, err := dec.readQuickList()
 		if err != nil {
 			return nil, err
 		}
+		base.Extra = extra
 		return &model.ListObject{
 			BaseObject: base,
 			Values:     list,

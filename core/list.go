@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/binary"
 	"errors"
+	"github.com/hdt3213/rdb/model"
 )
 
 const (
@@ -40,20 +41,22 @@ func (dec *Decoder) readList() ([][]byte, error) {
 	return values, nil
 }
 
-func (dec *Decoder) readQuickList() ([][]byte, error) {
+func (dec *Decoder) readQuickList() ([][]byte, *model.QuicklistDetail, error) {
 	size, _, err := dec.readLength()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	entries := make([][]byte, 0)
+	extra := &model.QuicklistDetail{}
 	for i := 0; i < int(size); i++ {
 		page, err := dec.readZipList()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		entries = append(entries, page...)
+		extra.ZiplistStruct = append(extra.ZiplistStruct, page)
 	}
-	return entries, nil
+	return entries, extra, nil
 }
 
 func (dec *Decoder) readQuickList2() ([][]byte, error) {
