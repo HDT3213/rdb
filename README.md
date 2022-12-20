@@ -34,6 +34,14 @@ If you have installed `go` on your compute, just simply use:
 go install github.com/hdt3213/rdb@latest
 ```
 
+### Package Managers
+
+If you're a [Homebrew](https://brew.sh/) user, you can install [rdb](https://formulae.brew.sh/formula/rdb) via:
+
+```sh
+$ brew install rdb
+```
+
 Or, you can download executable binary file from [releases](https://github.com/HDT3213/rdb/releases) and put its path to
 PATH environment.
 
