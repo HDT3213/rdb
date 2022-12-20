@@ -18,6 +18,7 @@ Options:
   -sep separator for flamegraph, rdb will separate key by it, default value is ":". 
 		supporting multi separators: -sep sep1 -sep sep2 
   -regex using regex expression filter keys
+  -no-expired filter expired keys
 
 Examples:
 parameters between '[' and ']' is optional
