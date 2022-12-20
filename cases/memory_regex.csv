@@ -1,3 +1,3 @@
-database,key,type,size,size_readable,element_count
-0,list,list,203,203B,4
-0,large,string,2608,2.5K,0
+database,key,type,size,size_readable,element_count,encoding,expiration
+0,list,list,203,203B,4,quicklist,
+0,large,string,2608,2.5K,0,string,
