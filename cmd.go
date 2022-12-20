@@ -52,12 +52,14 @@ func main() {
 	var port int
 	var seps separators
 	var regexExpr string
+	var noExpired bool
 	flagSet.StringVar(&cmd, "c", "", "command for rdb: json")
 	flagSet.StringVar(&output, "o", "", "output file path")
 	flagSet.IntVar(&n, "n", 0, "")
 	flagSet.IntVar(&port, "port", 0, "listen port for web")
-	flagSet.Var(&seps, "sep", "separator for flamegraph")
+	flagSet.Var(&seps, "sep", "separator for flame graph")
 	flagSet.StringVar(&regexExpr, "regex", "", "regex expression")
+	flagSet.BoolVar(&noExpired, "no-expired", false, "filter expired keys")
 	_ = flagSet.Parse(os.Args[1:]) // ExitOnError
 	src := flagSet.Arg(0)
 
@@ -73,6 +75,9 @@ func main() {
 	var options []interface{}
 	if regexExpr != "" {
 		options = append(options, helper.WithRegexOption(regexExpr))
+	}
+	if noExpired {
+		options = append(options, helper.WithNoExpiredOption())
 	}
 
 	var err error

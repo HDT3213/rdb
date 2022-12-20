@@ -47,6 +47,12 @@ func TestCmd(t *testing.T) {
 		t.Error("command memory failed")
 	}
 
+	os.Args = []string{"", "-c", "memory", "-o", "tmp/memory_regex.csv", "-regex", "^l.*", "-no-expired", "cases/memory.rdb"}
+	main()
+	if f, _ := os.Stat("tmp/memory_regex.csv"); f == nil {
+		t.Error("command memory failed")
+	}
+
 	// test error command line
 	os.Args = []string{"", "-c", "json", "-o", "tmp/output", "/none/a"}
 	main()

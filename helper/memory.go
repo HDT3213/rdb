@@ -9,6 +9,7 @@ import (
 	"github.com/hdt3213/rdb/model"
 	"os"
 	"strconv"
+	"time"
 )
 
 // MemoryProfile read rdb file and analysis memory usage then write result to csv file
@@ -34,27 +35,24 @@ func MemoryProfile(rdbFilename string, csvFilename string, options ...interface{
 		_ = csvFile.Close()
 	}()
 
-	var regexOpt RegexOption
-	for _, opt := range options {
-		switch o := opt.(type) {
-		case RegexOption:
-			regexOpt = o
-		}
-	}
 	var dec decoder = core.NewDecoder(rdbFile)
-	if regexOpt != nil {
-		dec, err = regexWrapper(dec, *regexOpt)
-		if err != nil {
-			return err
-		}
+	if dec, err = wrapDecoder(dec, options...); err != nil {
+		return err
 	}
 
-	_, err = csvFile.WriteString("database,key,type,size,size_readable,element_count\n")
+	_, err = csvFile.WriteString("database,key,type,size,size_readable,element_count,encoding,expiration\n")
 	if err != nil {
 		return fmt.Errorf("write csv failed: %v", err)
 	}
 	csvWriter := csv.NewWriter(csvFile)
 	defer csvWriter.Flush()
+	formatExpiration := func(o model.RedisObject) string {
+		expiration := o.GetExpiration()
+		if expiration == nil {
+			return ""
+		}
+		return expiration.Format(time.RFC3339)
+	}
 	return dec.Parse(func(object model.RedisObject) bool {
 		err = csvWriter.Write([]string{
 			strconv.Itoa(object.GetDBIndex()),
@@ -63,6 +61,8 @@ func MemoryProfile(rdbFilename string, csvFilename string, options ...interface{
 			strconv.Itoa(object.GetSize()),
 			bytefmt.FormatSize(uint64(object.GetSize())),
 			strconv.Itoa(object.GetElemCount()),
+			object.GetEncoding(),
+			formatExpiration(object),
 		})
 		if err != nil {
 			fmt.Printf("csv write failed: %v", err)

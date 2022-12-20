@@ -234,6 +234,36 @@ func TestMemoryWithRegex(t *testing.T) {
 	}
 }
 
+func TestMemoryNoExpired(t *testing.T) {
+	err := os.MkdirAll("tmp", os.ModePerm)
+	if err != nil {
+		return
+	}
+	defer func() {
+		err := os.RemoveAll("tmp")
+		if err != nil {
+			t.Logf("remove tmp directory failed: %v", err)
+		}
+	}()
+	srcRdb := filepath.Join("cases", "memory.rdb")
+	actualFile := filepath.Join("cases", "memory_expired.csv")
+	expectFile := filepath.Join("cases", "memory_expired.csv")
+	err = helper.MemoryProfile(srcRdb, actualFile, helper.WithNoExpiredOption())
+	if err != nil {
+		t.Errorf("error occurs during parse, err: %v", err)
+		return
+	}
+	equals, err := compareFileByLine(t, actualFile, expectFile)
+	if err != nil {
+		t.Errorf("error occurs during compare err: %v", err)
+		return
+	}
+	if !equals {
+		t.Errorf("result is not equal")
+		return
+	}
+}
+
 func TestToAof(t *testing.T) {
 	err := os.MkdirAll("tmp", os.ModePerm)
 	if err != nil {

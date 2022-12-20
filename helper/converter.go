@@ -33,19 +33,9 @@ func ToJsons(rdbFilename string, jsonFilename string, options ...interface{}) er
 		_ = jsonFile.Close()
 	}()
 	// create decoder
-	var regexOpt RegexOption
-	for _, opt := range options {
-		switch o := opt.(type) {
-		case RegexOption:
-			regexOpt = o
-		}
-	}
 	var dec decoder = core.NewDecoder(rdbFile)
-	if regexOpt != nil {
-		dec, err = regexWrapper(dec, *regexOpt)
-		if err != nil {
-			return err
-		}
+	if dec, err = wrapDecoder(dec, options...); err != nil {
+		return err
 	}
 	// parse rdb
 	_, err = jsonFile.WriteString("[\n")
@@ -108,19 +98,9 @@ func ToAOF(rdbFilename string, aofFilename string, options ...interface{}) error
 		_ = aofFile.Close()
 	}()
 
-	var regexOpt RegexOption
-	for _, opt := range options {
-		switch o := opt.(type) {
-		case RegexOption:
-			regexOpt = o
-		}
-	}
 	var dec decoder = core.NewDecoder(rdbFile)
-	if regexOpt != nil {
-		dec, err = regexWrapper(dec, *regexOpt)
-		if err != nil {
-			return err
-		}
+	if dec, err = wrapDecoder(dec, options...); err != nil {
+		return err
 	}
 	return dec.Parse(func(object model.RedisObject) bool {
 		cmdLines := ObjectToCmd(object)

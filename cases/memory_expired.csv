@@ -1,7 +1,6 @@
 database,key,type,size,size_readable,element_count,encoding,expiration
 0,hash,hash,131,131B,2,ziplist,
 0,s,string,64,64B,0,string,
-0,e,string,88,88B,0,string,2022-02-18T06:15:29+08:00
 0,list,list,203,203B,4,quicklist,
 0,zset,zset,99,99B,2,ziplist,
 0,large,string,2608,2.5K,0,string,
