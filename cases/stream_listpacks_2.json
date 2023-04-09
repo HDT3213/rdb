@@ -1,0 +1,3 @@
+[
+{"db":0,"key":"astream","size":664,"type":"stream","encoding":"listpack","isV2":true,"entries":[{"firstMsgId":"1681085300799-0","fields":["a","b","c"],"msgs":[{"id":"1681085300799-0","Fields":{"a":"1","b":"2","c":"3"},"deleted":false},{"id":"1681085312465-0","Fields":{"a":"2","b":"3","c":"4"},"deleted":false}]}],"len":2,"lastId":"1681085312465-0","firstId":"1681085300799-0","maxDeletedId":"0-0","addedEntriesCount":2}
+]

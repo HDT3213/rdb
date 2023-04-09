@@ -20,6 +20,8 @@ const (
 	AuxType = "aux"
 	// DBSizeType is for RDB_OPCODE_RESIZEDB
 	DBSizeType = "dbsize"
+	// StreamType is a redis stream
+	StreamType = "stream"
 )
 
 const (

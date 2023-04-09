@@ -157,3 +157,15 @@ func (dec *Decoder) readListPackEntry(buf []byte, cursor *int) ([]byte, uint32, 
 	}
 	return nil, 0, fmt.Errorf("unknown entry header")
 }
+
+func (dec *Decoder) readListPackEntryAsUint(buf []byte, cursor *int) (uint64, error) {
+	bin, _, err := dec.readListPackEntry(buf, cursor)
+	if err != nil {
+		return 0, fmt.Errorf("read from failed: %v", err)
+	}
+	i, err := strconv.ParseUint(string(bin), 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("%s is not a uint", string(bin))
+	}
+	return i, nil
+}

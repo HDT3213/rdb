@@ -17,22 +17,29 @@ func TestMemoryProfile(t *testing.T) {
 			t.Logf("remove tmp directory failed: %v", err)
 		}
 	}()
-	srcRdb := filepath.Join("../cases", "memory.rdb")
-	actualFile := filepath.Join("tmp", "memory.csv")
-	expectFile := filepath.Join("../cases", "memory.csv")
-	err = MemoryProfile(srcRdb, actualFile)
-	if err != nil {
-		t.Errorf("error occurs during parse %s, err: %v", srcRdb, err)
-		return
+	testCases := []string{
+		"memory",
+		"stream_listpacks_1",
+		"stream_listpacks_2",
 	}
-	equals, err := compareFileByLine(t, actualFile, expectFile)
-	if err != nil {
-		t.Errorf("error occurs during compare %s, err: %v", srcRdb, err)
-		return
-	}
-	if !equals {
-		t.Errorf("result is not equal of %s", srcRdb)
-		return
+	for _, name := range testCases {
+		srcRdb := filepath.Join("../cases", name+".rdb")
+		actualFile := filepath.Join("../cases", name+".csv")
+		expectFile := filepath.Join("../cases", name+".csv")
+		err = MemoryProfile(srcRdb, actualFile)
+		if err != nil {
+			t.Errorf("error occurs during parse %s, err: %v", srcRdb, err)
+			return
+		}
+		equals, err := compareFileByLine(t, actualFile, expectFile)
+		if err != nil {
+			t.Errorf("error occurs during compare %s, err: %v", srcRdb, err)
+			return
+		}
+		if !equals {
+			t.Errorf("result is not equal of %s", srcRdb)
+			return
+		}
 	}
 	err = MemoryProfile("../cases/memory.rdb", "")
 	if err == nil || err.Error() != "output file path is required" {

@@ -1,0 +1,2 @@
+database,key,type,size,size_readable,element_count,encoding,expiration
+0,astream,stream,664,664B,0,listpack,

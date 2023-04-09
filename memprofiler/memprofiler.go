@@ -27,6 +27,8 @@ func SizeOfObject(obj model.RedisObject) int {
 		size += sizeOfHashObject(o)
 	case *model.ZSetObject:
 		size += sizeOfZSetObject(o)
+	case *model.StreamObject:
+		size += sizeOfStreamObject(o)
 	}
 	return size
 }

@@ -75,25 +75,27 @@ const (
 	typeHashListPack
 	typeZsetListPack
 	typeListQuickList2
+	typeStreamListPacks2
 )
 
 var typeNameMap = map[int]string{
-	typeString:          model.StringEncoding,
-	typeList:            model.ListEncoding,
-	typeSet:             model.SetEncoding,
-	typeZset:            model.ZSetEncoding,
-	typeHash:            model.HashEncoding,
-	typeZset2:           model.ZSet2Encoding,
-	typeHashZipMap:      model.ZipMapEncoding,
-	typeListZipList:     model.ZipListEncoding,
-	typeSetIntSet:       model.IntSetEncoding,
-	typeZsetZipList:     model.ZipListEncoding,
-	typeHashZipList:     model.ZipListEncoding,
-	typeListQuickList:   model.QuickListEncoding,
-	typeStreamListPacks: model.ListPackEncoding,
-	typeHashListPack:    model.ListPackEncoding,
-	typeZsetListPack:    model.ListPackEncoding,
-	typeListQuickList2:  model.QuickList2Encoding,
+	typeString:           model.StringEncoding,
+	typeList:             model.ListEncoding,
+	typeSet:              model.SetEncoding,
+	typeZset:             model.ZSetEncoding,
+	typeHash:             model.HashEncoding,
+	typeZset2:            model.ZSet2Encoding,
+	typeHashZipMap:       model.ZipMapEncoding,
+	typeListZipList:      model.ZipListEncoding,
+	typeSetIntSet:        model.IntSetEncoding,
+	typeZsetZipList:      model.ZipListEncoding,
+	typeHashZipList:      model.ZipListEncoding,
+	typeListQuickList:    model.QuickListEncoding,
+	typeStreamListPacks:  model.ListPackEncoding,
+	typeStreamListPacks2: model.ListPackEncoding,
+	typeHashListPack:     model.ListPackEncoding,
+	typeZsetListPack:     model.ListPackEncoding,
+	typeListQuickList2:   model.QuickList2Encoding,
 }
 
 // checkHeader checks whether input has valid RDB file header
@@ -262,6 +264,14 @@ func (dec *Decoder) readObject(flag byte, base *model.BaseObject) (model.RedisOb
 			BaseObject: base,
 			Entries:    entries,
 		}, nil
+	case typeStreamListPacks, typeStreamListPacks2:
+		isV2 := flag == typeStreamListPacks2
+		stream, err := dec.readStreamListPacks(isV2)
+		if err != nil {
+			return nil, err
+		}
+		stream.BaseObject = base
+		return stream, nil
 	}
 	return nil, fmt.Errorf("unknown type flag: %b", flag)
 }

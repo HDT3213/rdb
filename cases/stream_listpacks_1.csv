@@ -1,0 +1,6 @@
+database,key,type,size,size_readable,element_count,encoding,expiration
+0,test,stream,616,616B,0,listpack,
+0,my,stream,616,616B,0,listpack,
+0,trim,stream,1868,1.8K,0,listpack,
+0,listpack,stream,10852,10.6K,0,listpack,
+0,nums,stream,616,616B,0,listpack,

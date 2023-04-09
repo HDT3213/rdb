@@ -63,6 +63,8 @@ func TestToJson(t *testing.T) {
 		}
 	}()
 	testCases := []string{
+		"stream_listpacks_2",
+		"stream_listpacks_1",
 		"listpack",
 		"memory",
 		"quicklist",
