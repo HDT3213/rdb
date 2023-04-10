@@ -92,7 +92,7 @@ func (dec *Decoder) readListPackEntry(buf []byte, cursor *int) ([]byte, uint32, 
 	case 14: // 1110 xxxx -> str, type(len) == uint12
 		dec.buffer[0] = header & 0x0f
 		dec.buffer[1], err = readByte(buf, cursor)
-		strLen := binary.LittleEndian.Uint32(dec.buffer[:2])
+		strLen := binary.BigEndian.Uint16(dec.buffer[:2])
 		result, err := readBytes(buf, cursor, int(strLen))
 		if err != nil {
 			return nil, 0, err
