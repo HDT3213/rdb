@@ -9,20 +9,20 @@ on:
   pull_request:
     branches: [ "master" ]
   workflow_dispatch:
-    
+
 
 jobs:
 
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    
-    - uses: actions/setup-go@v3
-      with:
-        go-version: '1.18'
-    - run: go test -v -coverprofile=profile.cov ./...
+      - uses: actions/checkout@v3
 
-    - uses: shogo82148/actions-goveralls@v1
-      with:
-        path-to-profile: profile.cov
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '1.18'
+      - run: go test -v -coverpkg=./core,./ -coverprofile=profile.cov ./...
+
+      - uses: shogo82148/actions-goveralls@v1
+        with:
+          path-to-profile: profile.cov
