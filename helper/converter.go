@@ -1,9 +1,9 @@
 package helper
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
+	json "github.com/bytedance/sonic"
 	"github.com/hdt3213/rdb/core"
 	"github.com/hdt3213/rdb/model"
 	"os"
