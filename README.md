@@ -353,8 +353,8 @@ Tested on MacBook Pro (16-inch, 2019) 2.6 GHz 6cores Intel Core i7, using  a 1.3
 
 |usage|elapsed|speed|
 |:-:|:-:|:-:|
-|ToJson|144.11s|9.23MB/s|
+|ToJson|74.12s|17.96MB/s|
 |Memory|18.585s|71.62MB/s|
 |AOF|104.77s|12.76MB/s|
 |Top10|14.8s|89.95MB/s|
-|FlameGraph|49.38s|26.96MB/s|
+|FlameGraph|21.83s|60.98MB/s|

@@ -37,7 +37,7 @@ type StreamEntry struct {
 
 // StreamMessage is a message item in stream
 type StreamMessage struct {
-	Id      StreamId          `json:"id"`
+	Id      *StreamId         `json:"id"`
 	Fields  map[string]string `json:"fields"`
 	Deleted bool              `json:"deleted"`
 }

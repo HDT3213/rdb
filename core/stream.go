@@ -166,7 +166,7 @@ func (dec *Decoder) readStreamEntryContent(buf []byte, cursor *int, firstId *mod
 		if err != nil {
 			return nil, fmt.Errorf("read stream item id seq failed: %v", err)
 		}
-		msgId := model.StreamId{
+		msgId := &model.StreamId{
 			Ms:       ms + firstId.Ms,
 			Sequence: seq + firstId.Sequence,
 		}
