@@ -173,7 +173,7 @@ func TestToAof(t *testing.T) {
 	srcRdb := filepath.Join("../cases", "memory.rdb")
 	actualFile := filepath.Join("tmp", "memory.aof")
 	expectFile := filepath.Join("../cases", "memory.aof")
-	err = ToAOF(srcRdb, actualFile)
+	err = ToAOF(srcRdb, actualFile, lexOrder{})
 	if err != nil {
 		t.Errorf("error occurs during parse %s, err: %v", srcRdb, err)
 		return
@@ -211,7 +211,7 @@ func TestToAofWithRegex(t *testing.T) {
 	srcRdb := filepath.Join("../cases", "memory.rdb")
 	actualFile := filepath.Join("tmp", "memory_regex.aof")
 	expectFile := filepath.Join("../cases", "memory_regex.aof")
-	err = ToAOF(srcRdb, actualFile, WithRegexOption("^l.*"))
+	err = ToAOF(srcRdb, actualFile, WithRegexOption("^l.*"), lexOrder{})
 	if err != nil {
 		t.Errorf("error occurs during parse, err: %v", err)
 		return

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/hdt3213/rdb/model"
 	"io"
+	"sort"
 	"strconv"
 )
 
@@ -11,6 +12,9 @@ const crlf = "\r\n"
 
 // CmdLine is alias for [][]byte, represents a command line
 type CmdLine = [][]byte
+
+// lexOrder traversal map in lex order to create
+type lexOrder struct{}
 
 func makeMultiBulkResp(args [][]byte) []byte {
 	argLen := len(args)
@@ -62,15 +66,32 @@ func setToCmd(obj *model.SetObject) CmdLine {
 
 var hMSetCmd = []byte("HMSET")
 
-func hashToCmd(obj *model.HashObject) CmdLine {
+func hashToCmd(obj *model.HashObject, useLexOrder bool) CmdLine {
 	cmdLine := make([][]byte, 2+obj.GetElemCount()*2)
 	cmdLine[0] = hMSetCmd
 	cmdLine[1] = []byte(obj.GetKey())
 	i := 0
-	for field, val := range obj.Hash {
-		cmdLine[2+i*2] = []byte(field)
-		cmdLine[3+i*2] = val
-		i++
+	if useLexOrder {
+		entries := make([][2][]byte, 0, 2*len(obj.Hash))
+		for field, val := range obj.Hash {
+			entries = append(entries, [2][]byte{
+				[]byte(field), val,
+			})
+		}
+		sort.Slice(entries, func(i, j int) bool {
+			return string(entries[i][0]) < string(entries[i][1])
+		})
+		for _, entry := range entries {
+			cmdLine[2+i*2] = entry[0]
+			cmdLine[3+i*2] = entry[1]
+			i++
+		}
+	} else {
+		for field, val := range obj.Hash {
+			cmdLine[2+i*2] = []byte(field)
+			cmdLine[3+i*2] = val
+			i++
+		}
 	}
 	return cmdLine
 }
@@ -105,9 +126,16 @@ func makeExpireCmd(obj model.RedisObject) CmdLine {
 }
 
 // ObjectToCmd convert redis object to redis command line
-func ObjectToCmd(obj model.RedisObject) []CmdLine {
+func ObjectToCmd(obj model.RedisObject, opts ...interface{}) []CmdLine {
 	if obj == nil {
 		return nil
+	}
+	useLexOrder := false
+	for _, o := range opts {
+		switch o.(type) {
+		case lexOrder:
+			useLexOrder = true
+		}
 	}
 	cmdLines := make([]CmdLine, 0)
 	switch obj.GetType() {
@@ -119,7 +147,7 @@ func ObjectToCmd(obj model.RedisObject) []CmdLine {
 		cmdLines = append(cmdLines, listToCmd(listObj))
 	case model.HashType:
 		hashObj := obj.(*model.HashObject)
-		cmdLines = append(cmdLines, hashToCmd(hashObj))
+		cmdLines = append(cmdLines, hashToCmd(hashObj, useLexOrder))
 	case model.SetType:
 		setObj := obj.(*model.SetObject)
 		cmdLines = append(cmdLines, setToCmd(setObj))

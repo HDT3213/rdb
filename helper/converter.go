@@ -103,7 +103,7 @@ func ToAOF(rdbFilename string, aofFilename string, options ...interface{}) error
 		return err
 	}
 	return dec.Parse(func(object model.RedisObject) bool {
-		cmdLines := ObjectToCmd(object)
+		cmdLines := ObjectToCmd(object, options...)
 		data := CmdLinesToResp(cmdLines)
 		_, err = aofFile.Write(data)
 		if err != nil {
