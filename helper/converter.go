@@ -3,11 +3,13 @@ package helper
 import (
 	"errors"
 	"fmt"
-	json "github.com/bytedance/sonic"
+	"github.com/bytedance/sonic"
 	"github.com/hdt3213/rdb/core"
 	"github.com/hdt3213/rdb/model"
 	"os"
 )
+
+var jsonEncoder = sonic.ConfigDefault
 
 // ToJsons read rdb file and convert to json file
 func ToJsons(rdbFilename string, jsonFilename string, options ...interface{}) error {
@@ -44,7 +46,7 @@ func ToJsons(rdbFilename string, jsonFilename string, options ...interface{}) er
 	}
 	empty := true
 	err = dec.Parse(func(object model.RedisObject) bool {
-		data, err := json.Marshal(object)
+		data, err := jsonEncoder.Marshal(object) // enable SortMapKeys to ensure same result
 		if err != nil {
 			fmt.Printf("json marshal failed: %v", err)
 			return true

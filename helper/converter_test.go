@@ -2,6 +2,7 @@ package helper
 
 import (
 	"bufio"
+	"github.com/bytedance/sonic"
 	"os"
 	"path/filepath"
 	"testing"
@@ -48,6 +49,8 @@ func compareFileByLine(t *testing.T, fn1, fn2 string) (bool, error) {
 }
 
 func TestToJson(t *testing.T) {
+	// SortMapKeys will cause performance losses, only enabled during test
+	jsonEncoder = sonic.ConfigStd
 	// use same time zone to ensure RedisObject.Expiration has same json value
 	var cstZone = time.FixedZone("CST", 8*3600)
 	time.Local = cstZone
