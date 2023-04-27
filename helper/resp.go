@@ -79,7 +79,7 @@ func hashToCmd(obj *model.HashObject, useLexOrder bool) CmdLine {
 			})
 		}
 		sort.Slice(entries, func(i, j int) bool {
-			return string(entries[i][0]) < string(entries[i][1])
+			return string(entries[i][0]) < string(entries[j][0])
 		})
 		for _, entry := range entries {
 			cmdLine[2+i*2] = entry[0]
