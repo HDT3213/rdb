@@ -389,6 +389,8 @@ func (dec *Decoder) parse(cb func(object model.RedisObject) bool) error {
 			break
 		}
 	}
+	// read crc64 at the end
+	_ = dec.readFull(dec.buffer)
 	return nil
 }
 
