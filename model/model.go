@@ -288,3 +288,29 @@ type DBSizeObject struct {
 func (o *DBSizeObject) GetType() string {
 	return DBSizeType
 }
+
+// ModuleTypeObject stores a module type object parsed by custom handler
+type ModuleTypeObject struct {
+	*BaseObject
+	ModuleType string
+	Value      interface{}
+}
+
+// GetType returns module type name
+func (o *ModuleTypeObject) GetType() string {
+	return o.ModuleType
+}
+
+// MarshalJSON marshal []byte as string
+func (o *ModuleTypeObject) MarshalJSON() ([]byte, error) {
+	o2 := struct {
+		*BaseObject
+		ModuleType string      `json:"moduleType"`
+		Value      interface{} `json:"value"`
+	}{
+		BaseObject: o.BaseObject,
+		ModuleType: o.ModuleType,
+		Value:      o.Value,
+	}
+	return json.Marshal(o2)
+}

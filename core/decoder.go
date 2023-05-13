@@ -21,6 +21,7 @@ type Decoder struct {
 	buffer    []byte
 
 	withSpecialOpCode bool
+	withSpecialTypes  map[string]ModuleTypeHandleFunc
 }
 
 // NewDecoder creates a new RDB decoder
@@ -28,12 +29,18 @@ func NewDecoder(reader io.Reader) *Decoder {
 	parser := new(Decoder)
 	parser.input = bufio.NewReader(reader)
 	parser.buffer = make([]byte, 8)
+	parser.withSpecialTypes = make(map[string]ModuleTypeHandleFunc)
 	return parser
 }
 
 // WithSpecialOpCode enables returning model.AuxObject to callback
 func (dec *Decoder) WithSpecialOpCode() *Decoder {
 	dec.withSpecialOpCode = true
+	return dec
+}
+
+func (dec *Decoder) WithSpecialType(moduleType string, f ModuleTypeHandleFunc) *Decoder {
+	dec.withSpecialTypes[moduleType] = f
 	return dec
 }
 
@@ -272,6 +279,16 @@ func (dec *Decoder) readObject(flag byte, base *model.BaseObject) (model.RedisOb
 		}
 		stream.BaseObject = base
 		return stream, nil
+	case typeModule2:
+		moduleType, val, err := dec.readModuleType()
+		if err != nil {
+			return nil, err
+		}
+		return &model.ModuleTypeObject{
+			BaseObject: base,
+			ModuleType: moduleType,
+			Value:      val,
+		}, nil
 	}
 	return nil, fmt.Errorf("unknown type flag: %b", flag)
 }
