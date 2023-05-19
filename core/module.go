@@ -5,15 +5,15 @@ import (
 	"fmt"
 )
 
-type Opcode int
+type Opcode uint8
 
 const (
-	OpcodeEOF    Opcode = 0
-	OpcodeSInt          = 1
-	OpcodeUInt          = 2
-	OpcodeFloat         = 3
-	OpcodeDouble        = 4
-	OpcodeString        = 5
+	ModuleOpcodeEOF Opcode = iota
+	ModuleOpcodeSInt
+	ModuleOpcodeUInt
+	ModuleOpcodeFloat
+	ModuleOpcodeDouble
+	ModuleOpcodeString
 )
 
 type ModuleTypeHandler interface {
@@ -88,24 +88,24 @@ func (dec *Decoder) handleModuleType(moduleId uint64) (string, interface{}, erro
 	if !found {
 		return moduleType, nil, fmt.Errorf("unknown module type: %s", moduleType)
 	}
-	encVersion := moduleId & 1023
+	encVersion := moduleTypeEncVersionByID(moduleId)
 	val, err := handler(moduleTypeHandlerImpl{dec: dec}, int(encVersion))
 	return moduleType, val, err
 }
 
-func moduleTypeNameByID(moduleid uint64) string {
-
+func moduleTypeNameByID(moduleId uint64) string {
 	cset := ModuleTypeNameCharSet
-
 	name := make([]byte, 9)
-
-	moduleid >>= 10
+	moduleId >>= 10
 	for j := 0; j < 9; j++ {
-		name[8-j] = cset[moduleid&63]
-		moduleid >>= 6
+		name[8-j] = cset[moduleId&63]
+		moduleId >>= 6
 	}
-
 	return string(name)
+}
+
+func moduleTypeEncVersionByID(moduleId uint64) uint64 {
+	return moduleId & 1023
 }
 
 const ModuleTypeNameCharSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
