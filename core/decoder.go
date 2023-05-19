@@ -70,7 +70,7 @@ const (
 	typeHash
 	typeZset2 /* ZSET version 2 with doubles stored in binary. */
 	typeModule
-	typeModule2 // Module should import module entity, not support at present.
+	typeModule2 // Module value parser should be registered with Decoder.WithSpecialType
 	_
 	typeHashZipMap
 	typeListZipList
