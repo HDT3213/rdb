@@ -224,6 +224,9 @@ func (enc *Encoder) tryWriteIntString(s string) (bool, error) {
 		buf[0] = encodeInt32Prefix
 		binary.LittleEndian.PutUint32(buf[1:], uint32(int32(intVal)))
 		err = enc.write(buf)
+	} else {
+		// beyond int32 range, but within int64 range
+		return false, nil
 	}
 	if err != nil {
 		return true, err
