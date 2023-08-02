@@ -1,0 +1,2 @@
+database,key,type,size,size_readable,element_count,encoding,expiration
+0,s,set,67,67B,4,listpack,

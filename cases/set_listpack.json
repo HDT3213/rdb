@@ -1,0 +1,3 @@
+[
+{"db":0,"key":"s","size":67,"type":"set","encoding":"listpack","members":["a","b","c","d"]}
+]
