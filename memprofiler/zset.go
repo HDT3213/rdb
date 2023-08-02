@@ -2,8 +2,8 @@ package memprofiler
 
 import (
 	"github.com/hdt3213/rdb/model"
+	"math"
 	"math/rand"
-	"time"
 )
 
 func skipListOverhead(size int) int {
@@ -11,12 +11,11 @@ func skipListOverhead(size int) int {
 }
 
 func skipListEntryOverhead() int {
-	return hashTableEntryOverhead() + 2*sizeOfPointer() + 8 + (sizeOfPointer()+8)*zsetRandomLevel()
+	return hashTableEntryOverhead() + 2*sizeOfPointer() + 8 + int(math.Round(float64(sizeOfPointer()+8)*MathExpectationOfRandomLevel))
 }
 
-func init() {
-	rand.Seed(time.Now().Unix())
-}
+// MathExpectationOfRandomLevel is mathematical expectation of zsetRandomLevel(), used to guarantee the stable results
+const MathExpectationOfRandomLevel = 1.33
 
 func zsetRandomLevel() int {
 	const maxLevel = 32
