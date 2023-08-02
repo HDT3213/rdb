@@ -20,7 +20,7 @@ It provides abilities to:
 - Customize data usage
 - Generate RDB file
 
-Support RDB version: 1 <= version <= 10(Redis 7.0)
+Support RDB version: 1 <= version <= 11(Redis 7.2)
 
 If you read Chinese, you could find a thorough introduction to the RDB file format here: [Golang 实现 Redis(11): RDB 文件格式](https://www.cnblogs.com/Finley/p/16251360.html)
 

@@ -21,10 +21,12 @@ func TestMemoryProfile(t *testing.T) {
 		"memory",
 		"stream_listpacks_1",
 		"stream_listpacks_2",
+		"set_listpack",
+		"listpack",
 	}
 	for _, name := range testCases {
 		srcRdb := filepath.Join("../cases", name+".rdb")
-		actualFile := filepath.Join("../cases", name+".csv")
+		actualFile := filepath.Join("tmp", name+".csv")
 		expectFile := filepath.Join("../cases", name+".csv")
 		err = MemoryProfile(srcRdb, actualFile)
 		if err != nil {

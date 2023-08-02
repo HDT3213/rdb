@@ -3,6 +3,7 @@ package memprofiler
 import (
 	"github.com/hdt3213/rdb/model"
 	"math/rand"
+	"time"
 )
 
 func skipListOverhead(size int) int {
@@ -11,6 +12,10 @@ func skipListOverhead(size int) int {
 
 func skipListEntryOverhead() int {
 	return hashTableEntryOverhead() + 2*sizeOfPointer() + 8 + (sizeOfPointer()+8)*zsetRandomLevel()
+}
+
+func init() {
+	rand.Seed(time.Now().Unix())
 }
 
 func zsetRandomLevel() int {
@@ -31,6 +36,9 @@ func zsetRandomLevel() int {
 func sizeOfZSetObject(o *model.ZSetObject) int {
 	if o.GetEncoding() == model.ZipListEncoding {
 		extra := o.Extra.(*model.ZiplistDetail)
+		return extra.RawStringSize
+	} else if o.GetEncoding() == model.ListPackEncoding {
+		extra := o.Extra.(*model.ListpackDetail)
 		return extra.RawStringSize
 	}
 	size := skipListOverhead(len(o.Entries))

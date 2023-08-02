@@ -26,6 +26,9 @@ func sizeOfHashObject(obj *model.HashObject) int {
 	if obj.GetEncoding() == model.ZipListEncoding {
 		extra := obj.Extra.(*model.ZiplistDetail)
 		return extra.RawStringSize
+	} else if obj.GetEncoding() == model.ListPackEncoding {
+		extra := obj.Extra.(*model.ListpackDetail)
+		return extra.RawStringSize
 	}
 	size := hashtableOverhead(len(obj.Hash))
 	for k, v := range obj.Hash {
@@ -39,6 +42,9 @@ func sizeOfHashObject(obj *model.HashObject) int {
 func sizeOfSetObject(obj *model.SetObject) int {
 	if obj.GetEncoding() == model.IntSetEncoding {
 		extra := obj.Extra.(*model.IntsetDetail)
+		return extra.RawStringSize
+	} else if obj.GetEncoding() == model.ListPackEncoding {
+		extra := obj.Extra.(*model.ListpackDetail)
 		return extra.RawStringSize
 	}
 	size := hashtableOverhead(len(obj.Members))

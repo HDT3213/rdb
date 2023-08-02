@@ -64,6 +64,27 @@ func (dec *Decoder) readIntSet() (result [][]byte, detail *model.IntsetDetail, e
 	return
 }
 
+func (dec *Decoder) readListPackSet() ([][]byte, *model.ListpackDetail, error) {
+	buf, err := dec.readString()
+	if err != nil {
+		return nil, nil, err
+	}
+	cursor := 0
+	size := readListPackLength(buf, &cursor)
+	values := make([][]byte, 0, size)
+	for i := 0; i < size; i += 1 {
+		member, _, err := dec.readListPackEntry(buf, &cursor)
+		if err != nil {
+			return nil, nil, err
+		}
+		values = append(values, member)
+	}
+	detail := &model.ListpackDetail{
+		RawStringSize: len(buf),
+	}
+	return values, detail, nil
+}
+
 func (enc *Encoder) WriteSetObject(key string, values [][]byte, options ...interface{}) error {
 	err := enc.beforeWriteObject(options...)
 	if err != nil {

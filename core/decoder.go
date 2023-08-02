@@ -48,7 +48,7 @@ var magicNumber = []byte("REDIS")
 
 const (
 	minVersion = 1
-	maxVersion = 10
+	maxVersion = 11
 )
 
 const (
@@ -83,9 +83,10 @@ const (
 	typeZsetListPack
 	typeListQuickList2
 	typeStreamListPacks2
+	typeSetListPack
 )
 
-var typeNameMap = map[int]string{
+var encodingMap = map[int]string{
 	typeString:           model.StringEncoding,
 	typeList:             model.ListEncoding,
 	typeSet:              model.SetEncoding,
@@ -103,6 +104,7 @@ var typeNameMap = map[int]string{
 	typeHashListPack:     model.ListPackEncoding,
 	typeZsetListPack:     model.ListPackEncoding,
 	typeListQuickList2:   model.QuickList2Encoding,
+	typeSetListPack:      model.ListPackEncoding,
 }
 
 // checkHeader checks whether input has valid RDB file header
@@ -129,7 +131,7 @@ func (dec *Decoder) checkHeader() error {
 }
 
 func (dec *Decoder) readObject(flag byte, base *model.BaseObject) (model.RedisObject, error) {
-	base.Encoding = typeNameMap[int(flag)]
+	base.Encoding = encodingMap[int(flag)]
 	switch flag {
 	case typeString:
 		bs, err := dec.readString()
@@ -226,10 +228,11 @@ func (dec *Decoder) readObject(flag byte, base *model.BaseObject) (model.RedisOb
 			Hash:       m,
 		}, nil
 	case typeHashListPack:
-		m, err := dec.readListPackHash()
+		m, extra, err := dec.readListPackHash()
 		if err != nil {
 			return nil, err
 		}
+		base.Extra = extra
 		return &model.HashObject{
 			BaseObject: base,
 			Hash:       m,
@@ -263,10 +266,11 @@ func (dec *Decoder) readObject(flag byte, base *model.BaseObject) (model.RedisOb
 			Entries:    entries,
 		}, nil
 	case typeZsetListPack:
-		entries, err := dec.readListPackZSet()
+		entries, extra, err := dec.readListPackZSet()
 		if err != nil {
 			return nil, err
 		}
+		base.Extra = extra
 		return &model.ZSetObject{
 			BaseObject: base,
 			Entries:    entries,
@@ -288,6 +292,16 @@ func (dec *Decoder) readObject(flag byte, base *model.BaseObject) (model.RedisOb
 			BaseObject: base,
 			ModuleType: moduleType,
 			Value:      val,
+		}, nil
+	case typeSetListPack:
+		set, extra, err := dec.readListPackSet()
+		if err != nil {
+			return nil, err
+		}
+		base.Extra = extra
+		return &model.SetObject{
+			BaseObject: base,
+			Members:    set,
 		}, nil
 	}
 	return nil, fmt.Errorf("unknown type flag: %b", flag)

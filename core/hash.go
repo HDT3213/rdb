@@ -154,10 +154,10 @@ func (dec *Decoder) readZipListHash() (map[string][]byte, *model.ZiplistDetail, 
 	return m, detail, nil
 }
 
-func (dec *Decoder) readListPackHash() (map[string][]byte, error) {
+func (dec *Decoder) readListPackHash() (map[string][]byte, *model.ListpackDetail, error) {
 	buf, err := dec.readString()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	cursor := 0
 	size := readListPackLength(buf, &cursor)
@@ -165,15 +165,18 @@ func (dec *Decoder) readListPackHash() (map[string][]byte, error) {
 	for i := 0; i < size; i += 2 {
 		key, _, err := dec.readListPackEntry(buf, &cursor)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		val, _, err := dec.readListPackEntry(buf, &cursor)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		m[unsafeBytes2Str(key)] = val
 	}
-	return m, nil
+	detail := &model.ListpackDetail{
+		RawStringSize: len(buf),
+	}
+	return m, detail, nil
 }
 
 func (enc *Encoder) WriteHashMapObject(key string, hash map[string][]byte, options ...interface{}) error {

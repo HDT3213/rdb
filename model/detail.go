@@ -29,3 +29,8 @@ const QuicklistNodeContainerPacked = 2
 type ZiplistDetail struct {
 	RawStringSize int
 }
+
+// ListpackDetail stores detail for listpack
+type ListpackDetail struct {
+	RawStringSize int
+}
