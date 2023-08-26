@@ -10,20 +10,12 @@ import (
 	"testing"
 )
 
-func TestRedisHeap_Append(t *testing.T) {
-	sizeMap := make(map[int]struct{}) // The behavior when encountering objects of the same size is undefined
+func TestTopList(t *testing.T) {
 	topN := 100
 	n := topN * 10
 	objects := make([]model.RedisObject, 0)
 	for i := 0; i < n; i++ {
-		var size int
-		for {
-			size = rand.Intn(n * 10)
-			if _, ok := sizeMap[size]; !ok {
-				sizeMap[size] = struct{}{}
-				break
-			}
-		}
+		size := rand.Intn(n * 10)
 		o := &model.StringObject{
 			BaseObject: &model.BaseObject{
 				Key:  strconv.Itoa(i),
@@ -34,18 +26,19 @@ func TestRedisHeap_Append(t *testing.T) {
 	}
 	topList := newRedisHeap(topN)
 	for _, o := range objects {
-		topList.Append(o)
+		topList.add(o)
 	}
-	actual := topList.Dump()
 	sort.Slice(objects, func(i, j int) bool {
 		return objects[i].GetSize() > objects[j].GetSize()
 	})
-	expect := objects[0:topN]
-	for i := 0; i < topN; i++ {
-		o1 := actual[i]
-		o2 := expect[i]
-		if o1.GetSize() != o2.GetSize() {
-			t.Errorf("wrong answer at index: %d", i)
+	if len(topList.list) != topN {
+		t.Error("wrong top list size")
+	}
+	for i, actual := range topList.list {
+		expect := objects[i]
+		if actual.GetSize() != expect.GetSize() {
+			t.Error("wrong top list")
+			return
 		}
 	}
 }
