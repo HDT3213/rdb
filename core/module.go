@@ -22,6 +22,7 @@ type ModuleTypeHandler interface {
 	ReadOpcode() (Opcode, error)
 	ReadUInt() (uint64, error)
 	ReadSInt() (int64, error)
+	ReadFloat32() (float32, error)
 	ReadDouble() (float64, error)
 	ReadString() ([]byte, error)
 	ReadLength() (uint64, bool, error)
@@ -60,6 +61,9 @@ func (m moduleTypeHandlerImpl) ReadSInt() (int64, error) {
 	return int64(val), err
 }
 
+func (m moduleTypeHandlerImpl) ReadFloat32() (float32, error) {
+	return m.dec.readFloat32()
+}
 func (m moduleTypeHandlerImpl) ReadDouble() (float64, error) {
 	return m.dec.readFloat()
 }
@@ -86,7 +90,8 @@ func (dec *Decoder) handleModuleType(moduleId uint64) (string, interface{}, erro
 	moduleType := moduleTypeNameByID(moduleId)
 	handler, found := dec.withSpecialTypes[moduleType]
 	if !found {
-		return moduleType, nil, fmt.Errorf("unknown module type: %s", moduleType)
+		fmt.Printf("unknown module type: %s,will skip\n", moduleType)
+		handler = skipModuleAuxData
 	}
 	encVersion := moduleTypeEncVersionByID(moduleId)
 	val, err := handler(moduleTypeHandlerImpl{dec: dec}, int(encVersion))
@@ -106,6 +111,39 @@ func moduleTypeNameByID(moduleId uint64) string {
 
 func moduleTypeEncVersionByID(moduleId uint64) uint64 {
 	return moduleId & 1023
+}
+
+// skipModuleAuxData skips module aux data
+func skipModuleAuxData(h ModuleTypeHandler, _ int) (interface{}, error) {
+	opCode, err := h.ReadOpcode()
+	if err != nil {
+		return nil, err
+	}
+	for opCode != ModuleOpcodeEOF {
+		switch opCode {
+		case ModuleOpcodeSInt:
+			_, err = h.ReadSInt()
+		case ModuleOpcodeUInt:
+			_, err = h.ReadUInt()
+		case ModuleOpcodeFloat:
+			_, err = h.ReadFloat32()
+		case ModuleOpcodeDouble:
+			_, err = h.ReadDouble()
+		case ModuleOpcodeString:
+			_, err = h.ReadString()
+		default:
+			err = fmt.Errorf("unknown module opcode %d", opCode)
+		}
+		if err != nil {
+			return nil, err
+		}
+		opCode, err = h.ReadOpcode()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return nil, nil
 }
 
 const ModuleTypeNameCharSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"

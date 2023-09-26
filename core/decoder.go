@@ -52,6 +52,7 @@ const (
 )
 
 const (
+	opCodeModuleAux    = 247 /* Module auxiliary data. */
 	opCodeIdle         = 248 /* LRU idle time. */
 	opCodeFreq         = 249 /* LFU frequency. */
 	opCodeAux          = 250 /* RDB aux field. */
@@ -391,6 +392,12 @@ func (dec *Decoder) parse(cb func(object model.RedisObject) bool) error {
 			continue
 		} else if b == opCodeIdle {
 			_, _, err = dec.readLength()
+			if err != nil {
+				return err
+			}
+			continue
+		} else if b == opCodeModuleAux {
+			_, _, err = dec.readModuleType()
 			if err != nil {
 				return err
 			}

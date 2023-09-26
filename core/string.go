@@ -158,6 +158,14 @@ func (dec *Decoder) readFloat() (float64, error) {
 	bits := binary.LittleEndian.Uint64(dec.buffer)
 	return math.Float64frombits(bits), nil
 }
+func (dec *Decoder) readFloat32() (f float32, err error) {
+	err = dec.readFull(dec.buffer[:4])
+	if err != nil {
+		return 0, err
+	}
+	bits := binary.LittleEndian.Uint32(dec.buffer[:4])
+	return math.Float32frombits(bits), nil
+}
 
 func (dec *Decoder) readLZF() ([]byte, error) {
 	inLen, _, err := dec.readLength()

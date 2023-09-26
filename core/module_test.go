@@ -84,87 +84,117 @@ func TestModuleType(t *testing.T) {
 		t.Error(err)
 		return
 	}
+	t.Run("with parse", func(t *testing.T) {
 
-	expectedResult := "expected-result"
+		expectedResult := "expected-result"
 
-	dec := NewDecoder(buf).WithSpecialType(testModuleType,
-		func(h ModuleTypeHandler, encVersion int) (interface{}, error) {
-			if encVersion != 42 {
-				t.Errorf("invalid encoding version, expected %d, actual %d",
-					expectedModuleEncVersion, encVersion)
-				return nil, fmt.Errorf("invalid encoding version, expected %d, actual %d",
-					expectedModuleEncVersion, encVersion)
+		dec := NewDecoder(buf).WithSpecialType(testModuleType,
+			func(h ModuleTypeHandler, encVersion int) (interface{}, error) {
+				if encVersion != 42 {
+					t.Errorf("invalid encoding version, expected %d, actual %d",
+						expectedModuleEncVersion, encVersion)
+					return nil, fmt.Errorf("invalid encoding version, expected %d, actual %d",
+						expectedModuleEncVersion, encVersion)
+				}
+
+				opcode, err := h.ReadOpcode()
+				if err != nil {
+					return nil, err
+				}
+				if opcode != ModuleOpcodeString {
+					return nil, fmt.Errorf("invalid opcode read, expected %d (string), actual %d",
+						ModuleOpcodeString, opcode)
+				}
+				data, err := h.ReadString()
+				if err != nil {
+					return nil, err
+				}
+				if !bytes.Equal(data, []byte(expectedStrData)) {
+					return nil, fmt.Errorf("invalid string data read, expected %s, actual %s",
+						expectedStrData, string(data))
+				}
+
+				opcode, err = h.ReadOpcode()
+				if err != nil {
+					return nil, err
+				}
+				if opcode != ModuleOpcodeUInt {
+					return nil, fmt.Errorf("invalid opcode read, expected %d (uint), actual %d",
+						ModuleOpcodeUInt, opcode)
+				}
+				val, err := h.ReadUInt()
+				if err != nil {
+					return nil, err
+				}
+				if val != expectedUInt {
+					return nil, fmt.Errorf("invalid unsigned int read, expected %d, actual %d",
+						expectedUInt, val)
+				}
+				opcode, err = h.ReadOpcode()
+				if err != nil {
+					return nil, err
+				}
+				if opcode != ModuleOpcodeEOF {
+					return nil, fmt.Errorf("invalid opcode read, expected %d (EOF), actual %d",
+						ModuleOpcodeEOF, opcode)
+				}
+				return expectedResult, nil
+			})
+
+		err = dec.Parse(func(o model.RedisObject) bool {
+			if o.GetKey() != key {
+				t.Errorf("invalid object key, expected %s, actual %s", key, o.GetKey())
+				return false
+			}
+			if o.GetType() != testModuleType {
+				t.Errorf("invalid redis type, expected %s, actual %s", testModuleType, o.GetType())
+				return false
+			}
+			mtObj, ok := o.(*model.ModuleTypeObject)
+			if !ok {
+				t.Errorf("invalid object type, expected model.ModuleTypeObject")
+				return false
 			}
 
-			opcode, err := h.ReadOpcode()
-			if err != nil {
-				return nil, err
-			}
-			if opcode != ModuleOpcodeString {
-				return nil, fmt.Errorf("invalid opcode read, expected %d (string), actual %d",
-					ModuleOpcodeString, opcode)
-			}
-			data, err := h.ReadString()
-			if err != nil {
-				return nil, err
-			}
-			if !bytes.Equal(data, []byte(expectedStrData)) {
-				return nil, fmt.Errorf("invalid string data read, expected %s, actual %s",
-					expectedStrData, string(data))
+			if mtObj.Value != expectedResult {
+				t.Errorf("invalid return value")
+				return false
 			}
 
-			opcode, err = h.ReadOpcode()
-			if err != nil {
-				return nil, err
-			}
-			if opcode != ModuleOpcodeUInt {
-				return nil, fmt.Errorf("invalid opcode read, expected %d (uint), actual %d",
-					ModuleOpcodeUInt, opcode)
-			}
-			val, err := h.ReadUInt()
-			if err != nil {
-				return nil, err
-			}
-			if val != expectedUInt {
-				return nil, fmt.Errorf("invalid unsigned int read, expected %d, actual %d",
-					expectedUInt, val)
-			}
-			opcode, err = h.ReadOpcode()
-			if err != nil {
-				return nil, err
-			}
-			if opcode != ModuleOpcodeEOF {
-				return nil, fmt.Errorf("invalid opcode read, expected %d (EOF), actual %d",
-					ModuleOpcodeEOF, opcode)
-			}
-			return expectedResult, nil
+			return true
 		})
-
-	err = dec.Parse(func(o model.RedisObject) bool {
-		if o.GetKey() != key {
-			t.Errorf("invalid object key, expected %s, actual %s", key, o.GetKey())
-			return false
+		if err != nil {
+			t.Error(err)
 		}
-		if o.GetType() != testModuleType {
-			t.Errorf("invalid redis type, expected %s, actual %s", testModuleType, o.GetType())
-			return false
-		}
-		mtObj, ok := o.(*model.ModuleTypeObject)
-		if !ok {
-			t.Errorf("invalid object type, expected model.ModuleTypeObject")
-			return false
-		}
-
-		if mtObj.Value != expectedResult {
-			t.Errorf("invalid return value")
-			return false
-		}
-
-		return true
 	})
-	if err != nil {
-		t.Error(err)
-	}
+	t.Run("skip parse", func(t *testing.T) {
+		dec := NewDecoder(buf)
+		err = dec.Parse(func(o model.RedisObject) bool {
+			if o.GetKey() != key {
+				t.Errorf("invalid object key, expected %s, actual %s", key, o.GetKey())
+				return false
+			}
+			if o.GetType() != testModuleType {
+				t.Errorf("invalid redis type, expected %s, actual %s", testModuleType, o.GetType())
+				return false
+			}
+			mtObj, ok := o.(*model.ModuleTypeObject)
+			if !ok {
+				t.Errorf("invalid object type, expected model.ModuleTypeObject")
+				return false
+			}
+
+			if mtObj.Value != nil {
+				t.Errorf("invalid return value")
+				return false
+			}
+
+			return true
+		})
+		if err != nil {
+			t.Error(err)
+		}
+	})
 }
 
 func TestCorrectModuleTypeEncodeDecode(t *testing.T) {
