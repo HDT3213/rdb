@@ -84,11 +84,12 @@ func TestModuleType(t *testing.T) {
 		t.Error(err)
 		return
 	}
+	data := buf.Bytes()
 	t.Run("with parse", func(t *testing.T) {
 
 		expectedResult := "expected-result"
 
-		dec := NewDecoder(buf).WithSpecialType(testModuleType,
+		dec := NewDecoder(bytes.NewBuffer(data)).WithSpecialType(testModuleType,
 			func(h ModuleTypeHandler, encVersion int) (interface{}, error) {
 				if encVersion != 42 {
 					t.Errorf("invalid encoding version, expected %d, actual %d",
@@ -168,7 +169,7 @@ func TestModuleType(t *testing.T) {
 		}
 	})
 	t.Run("skip parse", func(t *testing.T) {
-		dec := NewDecoder(buf)
+		dec := NewDecoder(bytes.NewBuffer(data))
 		err = dec.Parse(func(o model.RedisObject) bool {
 			if o.GetKey() != key {
 				t.Errorf("invalid object key, expected %s, actual %s", key, o.GetKey())
