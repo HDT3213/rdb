@@ -118,6 +118,15 @@ The examples for ssv result:
 8 CHEMXXXL:FULL:hxxxxx:1:1:1:1 132 
 8 CHEMXXXL:FULL:ixxxxx:1:1:1:2 540 
 8 CHEMXXXL:FULL:jxxxxx:1:1:1:1 132 
+#% diff ~/Downloads/rdb.ssv ~/Downloads/rdb.ssv1 | grep "^>" | sort -nk5
+> 0 string WORK:AREDIS:PID:cabcdef 335545
+> 0 string WORK:AREDIS:PID:2abcdef 419431
+> 0 string WORK:AREDIS:PID:3abcdef 419431
+> 0 string WORK:AREDIS:PID:9abcdef 419431
+> 0 string WORK:AREDIS:PID:cabcdef 419431
+> 0 string WORK:AREDIS:PID:fabcdef 419431
+#% diff ~/Downloads/rdb.ssv ~/Downloads/rdb.ssv1 | grep "^>" |awk '{sum+=$NF} END {print sum}'
+2123412352
 ```
 
 # Generate Memory Report
