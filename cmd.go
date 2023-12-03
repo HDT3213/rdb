@@ -3,15 +3,16 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/hdt3213/rdb/helper"
 	"os"
 	"strings"
+
+	"github.com/hdt3213/rdb/helper"
 )
 
 const help = `
 This is a tool to parse Redis' RDB files
 Options:
-  -c command, including: json/memory/aof/bigkey/flamegraph
+  -c command, including: json/memory/aof/bigkey/flamegraph/ssv
   -o output file path
   -n number of result, using in 
   -port listen port for flame graph web service
@@ -19,6 +20,7 @@ Options:
 		supporting multi separators: -sep sep1 -sep sep2 
   -regex using regex expression filter keys
   -no-expired filter expired keys
+  -field including: [db]/key/expiration/size/type/encoding/value/values/hash/members/entries
 
 Examples:
 parameters between '[' and ']' is optional
@@ -32,6 +34,8 @@ parameters between '[' and ']' is optional
   rdb -c bigkey [-o dump.aof] [-n 10] dump.rdb
 5. draw flamegraph
   rdb -c flamegraph [-port 16379] [-sep :] dump.rdb
+6. convert rdb to [json/ssv] with fields
+  rdb -c ssv -fields key,size,type -regex FULL -o dump.list dump.rdb
 `
 
 type separators []string
@@ -54,6 +58,7 @@ func main() {
 	var seps separators
 	var regexExpr string
 	var noExpired bool
+	var fields string
 	flagSet.StringVar(&cmd, "c", "", "command for rdb: json")
 	flagSet.StringVar(&output, "o", "", "output file path")
 	flagSet.IntVar(&n, "n", 0, "")
@@ -61,6 +66,8 @@ func main() {
 	flagSet.Var(&seps, "sep", "separator for flame graph")
 	flagSet.StringVar(&regexExpr, "regex", "", "regex expression")
 	flagSet.BoolVar(&noExpired, "no-expired", false, "filter expired keys")
+	flagSet.StringVar(&fields, "fields", "", "output fields")
+
 	_ = flagSet.Parse(os.Args[1:]) // ExitOnError
 	src := flagSet.Arg(0)
 
@@ -80,15 +87,20 @@ func main() {
 	if noExpired {
 		options = append(options, helper.WithNoExpiredOption())
 	}
+	if fields != "" {
+		options = append(options, helper.WithFieldOption(fields))
+	}
 
 	var err error
 	switch cmd {
 	case "json":
 		err = helper.ToJsons(src, output, options...)
-	case "memory":
-		err = helper.MemoryProfile(src, output, options...)
+	case "ssv":
+		err = helper.ToSSV(src, output, options...)
 	case "aof":
 		err = helper.ToAOF(src, output, options)
+	case "memory":
+		err = helper.MemoryProfile(src, output, options...)
 	case "bigkey":
 		if output == "" {
 			err = helper.FindBiggestKeys(src, n, os.Stdout, options...)

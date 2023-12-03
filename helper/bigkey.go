@@ -4,12 +4,13 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
-	"github.com/hdt3213/rdb/bytefmt"
-	"github.com/hdt3213/rdb/core"
-	"github.com/hdt3213/rdb/model"
 	"os"
 	"sort"
 	"strconv"
+
+	"github.com/hdt3213/rdb/bytefmt"
+	"github.com/hdt3213/rdb/core"
+	"github.com/hdt3213/rdb/model"
 )
 
 type topList struct {

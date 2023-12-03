@@ -70,17 +70,23 @@ type RedisObject interface {
 	GetElemCount() int
 	// GetEncoding returns encoding of object
 	GetEncoding() string
+
+	DetermineFields([]string) RedisObject
 }
 
 // BaseObject is basement of redis object
 type BaseObject struct {
 	DB         int         `json:"db"`                   // DB is db index of redis object
-	Key        string      `json:"key"`                  // Key is key of redis object
+	Key        string      `json:"key,omitempty"`        // Key is key of redis object
 	Expiration *time.Time  `json:"expiration,omitempty"` // Expiration is expiration time, expiration of persistent object is nil
-	Size       int         `json:"size"`                 // Size is rdb value size in Byte
-	Type       string      `json:"type"`                 // Type is one of string/list/set/hash/zset
-	Encoding   string      `json:"encoding"`             // Encoding is the exact encoding method
+	Size       int         `json:"size,omitempty"`       // Size is rdb value size in Byte
+	Type       string      `json:"type,omitempty"`       // Type is one of string/list/set/hash/zset
+	Encoding   string      `json:"encoding,omitempty"`   // Encoding is the exact encoding method
 	Extra      interface{} `json:"-"`                    // Extra stores more detail of encoding for memory profiler and other usages
+}
+
+func (o *BaseObject) GetType() string {
+	return o.Type
 }
 
 // GetKey returns key of object
@@ -113,10 +119,43 @@ func (o *BaseObject) GetElemCount() int {
 	return 0
 }
 
+func (o *BaseObject) DetermineFields(fields []string) RedisObject {
+	if o == nil {
+		return nil
+	}
+
+	var obj = &BaseObject{}
+	for _, i := range fields {
+		switch i {
+		case "key":
+			if o.Key != "" {
+				obj.Key = o.Key
+			}
+		case "expiration":
+			if o.Expiration != nil {
+				obj.Expiration = o.Expiration
+			}
+		case "size":
+			if o.Size != 0 {
+				obj.Size = o.Size
+			}
+		case "type":
+			if o.Type != "" {
+				obj.Type = o.Type
+			}
+		case "encoding":
+			if o.Encoding != "" {
+				obj.Encoding = o.Encoding
+			}
+		}
+	}
+	return obj
+}
+
 // StringObject stores a string object
 type StringObject struct {
 	*BaseObject
-	Value []byte
+	Value []byte `json:"value,omitempty"`
 }
 
 // GetType returns redis object type
@@ -128,7 +167,7 @@ func (o *StringObject) GetType() string {
 func (o *StringObject) MarshalJSON() ([]byte, error) {
 	o2 := struct {
 		*BaseObject
-		Value string `json:"value"`
+		Value string `json:"value,omitempty"`
 	}{
 		BaseObject: o.BaseObject,
 		Value:      string(o.Value),
@@ -136,10 +175,49 @@ func (o *StringObject) MarshalJSON() ([]byte, error) {
 	return json.Marshal(o2)
 }
 
+func (o *StringObject) DetermineFields(fields []string) RedisObject {
+	if o == nil {
+		return nil
+	}
+	var baseObject = &BaseObject{DB: o.DB}
+	var obj = &StringObject{}
+	for _, i := range fields {
+		switch i {
+		case "key":
+			if o.Key != "" {
+				baseObject.Key = o.Key
+			}
+		case "expiration":
+			if o.Expiration != nil {
+				baseObject.Expiration = o.Expiration
+			}
+		case "size":
+			if o.Size != 0 {
+				baseObject.Size = o.Size
+			}
+		case "type":
+			if o.Type != "" {
+				baseObject.Type = o.Type
+			}
+		case "encoding":
+			if o.Encoding != "" {
+				baseObject.Encoding = o.Encoding
+			}
+		case "value":
+			if o.Value != nil {
+				obj.Value = o.Value
+			}
+		}
+	}
+	obj.BaseObject = baseObject
+
+	return obj
+}
+
 // ListObject stores a list object
 type ListObject struct {
 	*BaseObject
-	Values [][]byte
+	Values [][]byte `json:"values,omitempty"`
 }
 
 // GetType returns redis object type
@@ -160,7 +238,7 @@ func (o *ListObject) MarshalJSON() ([]byte, error) {
 	}
 	o2 := struct {
 		*BaseObject
-		Values []string `json:"values"`
+		Values []string `json:"values,omitempty"`
 	}{
 		BaseObject: o.BaseObject,
 		Values:     values,
@@ -168,10 +246,49 @@ func (o *ListObject) MarshalJSON() ([]byte, error) {
 	return json.Marshal(o2)
 }
 
+func (o *ListObject) DetermineFields(fields []string) RedisObject {
+	if o == nil {
+		return nil
+	}
+	var baseObject = &BaseObject{DB: o.DB}
+	var obj = &ListObject{}
+	for _, i := range fields {
+		switch i {
+		case "key":
+			if o.Key != "" {
+				baseObject.Key = o.Key
+			}
+		case "expiration":
+			if o.Expiration != nil {
+				baseObject.Expiration = o.Expiration
+			}
+		case "size":
+			if o.Size != 0 {
+				baseObject.Size = o.Size
+			}
+		case "type":
+			if o.Type != "" {
+				baseObject.Type = o.Type
+			}
+		case "encoding":
+			if o.Encoding != "" {
+				baseObject.Encoding = o.Encoding
+			}
+		case "values":
+			if o.Values != nil {
+				obj.Values = o.Values
+			}
+		}
+	}
+	obj.BaseObject = baseObject
+
+	return obj
+}
+
 // HashObject stores a hash object
 type HashObject struct {
 	*BaseObject
-	Hash map[string][]byte
+	Hash map[string][]byte `json:"hash,omitempty"`
 }
 
 // GetType returns redis object type
@@ -192,7 +309,7 @@ func (o *HashObject) MarshalJSON() ([]byte, error) {
 	}
 	o2 := struct {
 		*BaseObject
-		Hash map[string]string `json:"hash"`
+		Hash map[string]string `json:"hash,omitempty"`
 	}{
 		BaseObject: o.BaseObject,
 		Hash:       m,
@@ -200,10 +317,50 @@ func (o *HashObject) MarshalJSON() ([]byte, error) {
 	return json.Marshal(o2)
 }
 
+func (o *HashObject) DetermineFields(fields []string) RedisObject {
+	if o == nil {
+		return nil
+	}
+	var baseObject = &BaseObject{DB: o.DB}
+
+	var obj = &HashObject{}
+	for _, i := range fields {
+		switch i {
+		case "key":
+			if o.Key != "" {
+				baseObject.Key = o.Key
+			}
+		case "expiration":
+			if o.Expiration != nil {
+				baseObject.Expiration = o.Expiration
+			}
+		case "size":
+			if o.Size != 0 {
+				baseObject.Size = o.Size
+			}
+		case "type":
+			if o.Type != "" {
+				baseObject.Type = o.Type
+			}
+		case "encoding":
+			if o.Encoding != "" {
+				baseObject.Encoding = o.Encoding
+			}
+		case "hash":
+			if o.Hash != nil {
+				obj.Hash = o.Hash
+			}
+		}
+	}
+	obj.BaseObject = baseObject
+
+	return obj
+}
+
 // SetObject stores a set object
 type SetObject struct {
 	*BaseObject
-	Members [][]byte
+	Members [][]byte `json:"members,omitempty"`
 }
 
 // GetType returns redis object type
@@ -224,7 +381,7 @@ func (o *SetObject) MarshalJSON() ([]byte, error) {
 	}
 	o2 := struct {
 		*BaseObject
-		Members []string `json:"members"`
+		Members []string `json:"members,omitempty"`
 	}{
 		BaseObject: o.BaseObject,
 		Members:    values,
@@ -232,16 +389,55 @@ func (o *SetObject) MarshalJSON() ([]byte, error) {
 	return json.Marshal(o2)
 }
 
+func (o *SetObject) DetermineFields(fields []string) RedisObject {
+	if o == nil {
+		return nil
+	}
+	var baseObject = &BaseObject{DB: o.DB}
+	var obj = &SetObject{}
+	for _, i := range fields {
+		switch i {
+		case "key":
+			if o.Key != "" {
+				baseObject.Key = o.Key
+			}
+		case "expiration":
+			if o.Expiration != nil {
+				baseObject.Expiration = o.Expiration
+			}
+		case "size":
+			if o.Size != 0 {
+				baseObject.Size = o.Size
+			}
+		case "type":
+			if o.Type != "" {
+				baseObject.Type = o.Type
+			}
+		case "encoding":
+			if o.Encoding != "" {
+				baseObject.Encoding = o.Encoding
+			}
+		case "members":
+			if o != nil && o.Members != nil {
+				obj.Members = o.Members
+			}
+		}
+	}
+	obj.BaseObject = baseObject
+
+	return obj
+}
+
 // ZSetEntry is a key-score in sorted set
 type ZSetEntry struct {
-	Member string  `json:"member"`
-	Score  float64 `json:"score"`
+	Member string  `json:"member,omitempty"`
+	Score  float64 `json:"score,omitempty"`
 }
 
 // ZSetObject stores a sorted set object
 type ZSetObject struct {
 	*BaseObject
-	Entries []*ZSetEntry `json:"entries"`
+	Entries []*ZSetEntry `json:"entries,omitempty"`
 }
 
 // GetType returns redis object type
@@ -254,10 +450,49 @@ func (o *ZSetObject) GetElemCount() int {
 	return len(o.Entries)
 }
 
+func (o *ZSetObject) DetermineFields(fields []string) RedisObject {
+	if o == nil {
+		return nil
+	}
+	var baseObject = &BaseObject{DB: o.DB}
+	var obj = &ZSetObject{}
+	for _, i := range fields {
+		switch i {
+		case "key":
+			if o.Key != "" {
+				baseObject.Key = o.Key
+			}
+		case "expiration":
+			if o.Expiration != nil {
+				baseObject.Expiration = o.Expiration
+			}
+		case "size":
+			if o.Size != 0 {
+				baseObject.Size = o.Size
+			}
+		case "type":
+			if o.Type != "" {
+				baseObject.Type = o.Type
+			}
+		case "encoding":
+			if o.Encoding != "" {
+				baseObject.Encoding = o.Encoding
+			}
+		case "entries":
+			if o.Entries != nil {
+				obj.Entries = o.Entries
+			}
+		}
+	}
+	obj.BaseObject = baseObject
+
+	return obj
+}
+
 // AuxObject stores redis metadata
 type AuxObject struct {
 	*BaseObject
-	Value string
+	Value string `json:"value,omitempty"`
 }
 
 // GetType returns redis object type
@@ -269,12 +504,52 @@ func (o *AuxObject) GetType() string {
 func (o *AuxObject) MarshalJSON() ([]byte, error) {
 	o2 := struct {
 		*BaseObject
-		Value string `json:"value"`
+		Value string `json:"value,omitempty"`
 	}{
 		BaseObject: o.BaseObject,
 		Value:      string(o.Value),
 	}
 	return json.Marshal(o2)
+}
+
+func (o *AuxObject) DetermineFields(fields []string) RedisObject {
+	if o == nil {
+		return nil
+	}
+	var baseObject = &BaseObject{DB: o.DB}
+	var obj = &AuxObject{}
+	for _, i := range fields {
+		switch i {
+		case "key":
+			if o.Key != "" {
+				baseObject.Key = o.Key
+			}
+		case "expiration":
+			if o.Expiration != nil {
+				baseObject.Expiration = o.Expiration
+			}
+		case "size":
+			if o.Size != 0 {
+				baseObject.Size = o.Size
+			}
+		case "type":
+			if o.Type != "" {
+				baseObject.Type = o.Type
+			}
+		case "encoding":
+			if o.Encoding != "" {
+				baseObject.Encoding = o.Encoding
+			}
+		case "value":
+			if o.Value != "" {
+				obj.Value = o.Value
+			}
+		}
+	}
+
+	obj.BaseObject = baseObject
+
+	return obj
 }
 
 // DBSizeObject stores db size metadata
@@ -292,8 +567,8 @@ func (o *DBSizeObject) GetType() string {
 // ModuleTypeObject stores a module type object parsed by custom handler
 type ModuleTypeObject struct {
 	*BaseObject
-	ModuleType string
-	Value      interface{}
+	ModuleType string      `json:"moduleType,omitempty"`
+	Value      interface{} `json:"value,omitempty"`
 }
 
 // GetType returns module type name
@@ -305,12 +580,56 @@ func (o *ModuleTypeObject) GetType() string {
 func (o *ModuleTypeObject) MarshalJSON() ([]byte, error) {
 	o2 := struct {
 		*BaseObject
-		ModuleType string      `json:"moduleType"`
-		Value      interface{} `json:"value"`
+		ModuleType string      `json:"moduleType,omitempty"`
+		Value      interface{} `json:"value,omitempty"`
 	}{
 		BaseObject: o.BaseObject,
 		ModuleType: o.ModuleType,
 		Value:      o.Value,
 	}
 	return json.Marshal(o2)
+}
+
+func (o *ModuleTypeObject) DetermineFields(fields []string) RedisObject {
+	if o == nil {
+		return nil
+	}
+	var baseObject = &BaseObject{DB: o.DB}
+
+	var obj = &ModuleTypeObject{}
+	for _, i := range fields {
+		switch i {
+		case "key":
+			if o.Key != "" {
+				baseObject.Key = o.Key
+			}
+		case "expiration":
+			if o.Expiration != nil {
+				baseObject.Expiration = o.Expiration
+			}
+		case "size":
+			if o.Size != 0 {
+				baseObject.Size = o.Size
+			}
+		case "type":
+			if o.Type != "" {
+				baseObject.Type = o.Type
+			}
+		case "encoding":
+			if o.Encoding != "" {
+				baseObject.Encoding = o.Encoding
+			}
+		case "value":
+			if o.Value != nil {
+				obj.Value = o.Value
+			}
+		case "moduleType":
+			if o.ModuleType != "" {
+				obj.ModuleType = o.ModuleType
+			}
+		}
+	}
+	obj.BaseObject = baseObject
+
+	return obj
 }

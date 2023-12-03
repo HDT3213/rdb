@@ -2,9 +2,10 @@ package core
 
 import (
 	"bytes"
-	"github.com/hdt3213/rdb/model"
 	"testing"
 	"time"
+
+	"github.com/hdt3213/rdb/model"
 )
 
 func TestEncode(t *testing.T) {

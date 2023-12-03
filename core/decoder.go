@@ -7,11 +7,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/hdt3213/rdb/memprofiler"
-	"github.com/hdt3213/rdb/model"
 	"io"
 	"strconv"
 	"time"
+
+	"github.com/hdt3213/rdb/memprofiler"
+	"github.com/hdt3213/rdb/model"
 )
 
 // Decoder is an instance of rdb parsing process
@@ -20,6 +21,7 @@ type Decoder struct {
 	readCount int
 	buffer    []byte
 
+	fields            []string
 	withSpecialOpCode bool
 	withSpecialTypes  map[string]ModuleTypeHandleFunc
 }
@@ -422,7 +424,15 @@ func (dec *Decoder) parse(cb func(object model.RedisObject) bool) error {
 		}
 		base.Size = memprofiler.SizeOfObject(obj)
 		base.Type = obj.GetType()
-		tbc := cb(obj)
+
+		var object model.RedisObject
+		if len(dec.fields) > 0 {
+			object = obj.DetermineFields(dec.fields)
+		} else {
+			object = obj
+		}
+
+		tbc := cb(object)
 		if !tbc {
 			break
 		}
@@ -449,4 +459,12 @@ func (dec *Decoder) Parse(cb func(object model.RedisObject) bool) (err error) {
 
 func (dec *Decoder) GetReadCount() int {
 	return dec.readCount
+}
+
+func (dec *Decoder) SetFields(fields []string) {
+	dec.fields = fields
+}
+
+func (dec *Decoder) GetFields() []string {
+	return dec.fields
 }

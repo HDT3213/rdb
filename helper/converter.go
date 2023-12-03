@@ -3,10 +3,11 @@ package helper
 import (
 	"errors"
 	"fmt"
+	"os"
+
 	"github.com/bytedance/sonic"
 	"github.com/hdt3213/rdb/core"
 	"github.com/hdt3213/rdb/model"
-	"os"
 )
 
 var jsonEncoder = sonic.ConfigDefault
@@ -114,4 +115,62 @@ func ToAOF(rdbFilename string, aofFilename string, options ...interface{}) error
 		}
 		return true
 	})
+}
+
+func ToSSV(rdbFilename string, filename string, options ...interface{}) error {
+	if rdbFilename == "" {
+		return errors.New("src file path is required")
+	}
+	if filename == "" {
+		return errors.New("output file path is required")
+	}
+	// open file
+	rdbFile, err := os.Open(rdbFilename)
+	if err != nil {
+		return fmt.Errorf("open rdb %s failed, %v", rdbFilename, err)
+	}
+	defer func() {
+		_ = rdbFile.Close()
+	}()
+	file, err := os.Create(filename)
+	if err != nil {
+		return fmt.Errorf("create file %s failed, %v", filename, err)
+	}
+	defer func() {
+		_ = file.Close()
+	}()
+	// create decoder
+	var dec decoder = core.NewDecoder(rdbFile)
+	if dec, err = wrapDecoder(dec, options...); err != nil {
+		return err
+	}
+
+	empty := true
+	err = dec.Parse(func(object model.RedisObject) bool {
+		data, err := ObjectToSsv(object, dec)
+		if err != nil {
+			fmt.Printf("convert failed: %v", err)
+			return true
+		}
+
+		data = append(data, ' ', '\n')
+		_, err = file.Write(data)
+		if err != nil {
+			fmt.Printf("write failed: %v", err)
+			return true
+		}
+		empty = false
+		return true
+	})
+	if err != nil {
+		return err
+	}
+	// finish ssv
+	if !empty {
+		_, err = file.Seek(-2, 2)
+		if err != nil {
+			return fmt.Errorf("error during seek in file: %v", err)
+		}
+	}
+	return nil
 }

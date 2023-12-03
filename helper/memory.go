@@ -4,12 +4,13 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
-	"github.com/hdt3213/rdb/bytefmt"
-	"github.com/hdt3213/rdb/core"
-	"github.com/hdt3213/rdb/model"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/hdt3213/rdb/bytefmt"
+	"github.com/hdt3213/rdb/core"
+	"github.com/hdt3213/rdb/model"
 )
 
 // MemoryProfile read rdb file and analysis memory usage then write result to csv file
