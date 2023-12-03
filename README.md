@@ -58,6 +58,7 @@ Options:
                 supporting multi separators: -sep sep1 -sep sep2 
   -regex using regex expression filter keys
   -no-expired filter expired keys
+  -field including: [db]/key/expiration/size/type/encoding/value/values/hash/members/entries
 
 Examples:
 parameters between '[' and ']' is optional
@@ -71,27 +72,27 @@ parameters between '[' and ']' is optional
   rdb -c bigkey [-o dump.aof] [-n 10] dump.rdb
 5. draw flamegraph
   rdb -c flamegraph [-port 16379] [-sep :] dump.rdb
+6. convert rdb to [json/ssv] with fields
+  rdb -c ssv -fields key,size,type -regex FULL -o dump.list dump.rdb
 ```
 
-# Convert to Json
+# Convert to Json/Ssv [with fields]
 
 Usage:
 
 ```
 rdb -c json -o <output_path> <source_path>
-```
-
-example:
-
-```
-rdb -c json -o intset_16.json cases/intset_16.rdb
+rdb -c json -fields key,size -o <output_path> <source_path>
+rdb -c ssv -fields key,size -regex <regex> -o <output_path> <source_path>
 ```
 
 You can get some rdb examples in [cases](https://github.com/HDT3213/rdb/tree/master/cases)
 
 The examples for json result:
 
-```json
+```shell
+#% rdb -c json -o intset_16.json cases/intset_16.rdb
+#% cat intset_16.json
 [
     {"db":0,"key":"hash","size":64,"type":"hash","hash":{"ca32mbn2k3tp41iu":"ca32mbn2k3tp41iu","mddbhxnzsbklyp8c":"mddbhxnzsbklyp8c"}},
     {"db":0,"key":"string","size":10,"type":"string","value":"aaaaaaa"},
@@ -100,6 +101,23 @@ The examples for json result:
     {"db":0,"key":"zset","expiration":"2022-02-18T06:15:29.18+08:00","size":57,"type":"zset","entries":[{"member":"zn4ejjo4ths63irg","score":1},{"member":"1ik4jifkg6olxf5n","score":2}]},
     {"db":0,"key":"set","expiration":"2022-02-18T06:15:29.18+08:00","size":39,"type":"set","members":["2hzm5rnmkmwb3zqd","tdje6bk22c6ddlrw"]}
 ]
+```
+
+The examples for ssv result:
+
+```shell
+#% rdb -c ssv -fields key,size -regex FULL -o ~/Downloads/rdb.ssv ~/Downloads/dump-0001.rdb 
+#% head ~/Downloads/rdb.ssv
+8 CHEMXXXL:FULL:axxxxx:1:1:1:1 132 
+8 CHEMXXXL:FULL:bxxxxx:1:1:1:1 132 
+8 CHEMXXXL:FULL:cxxxxx:1:1:1:1 132 
+8 CHEMXXXL:FULL:dxxxxx:1:1:1:1 132 
+8 CHEMXXXL:FULL:exxxxx:1:1:1:1 132 
+8 CHEMXXXL:FULL:fxxxxx:1:1:1:1 132 
+8 CHEMXXXL:FULL:gxxxxx:1:1:1:1 132 
+8 CHEMXXXL:FULL:hxxxxx:1:1:1:1 132 
+8 CHEMXXXL:FULL:ixxxxx:1:1:1:2 540 
+8 CHEMXXXL:FULL:jxxxxx:1:1:1:1 132 
 ```
 
 # Generate Memory Report
