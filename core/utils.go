@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
-	"log"
 	"math/rand"
 	"unsafe"
 )
@@ -14,7 +13,6 @@ func readBytes(buf []byte, cursor *int, size int) ([]byte, error) {
 		return nil, errors.New("cursor is nil")
 	}
 	if *cursor+size > len(buf) {
-		log.Fatal(errors.New("cursor out of range"))
 		return nil, errors.New("cursor out of range")
 	}
 	end := *cursor + size
@@ -28,7 +26,6 @@ func readByte(buf []byte, cursor *int) (byte, error) {
 		return 0, errors.New("cursor is nil")
 	}
 	if *cursor >= len(buf) {
-		log.Fatal(errors.New("cursor out of range"))
 		return 0, errors.New("cursor out of range")
 	}
 	b := buf[*cursor]
