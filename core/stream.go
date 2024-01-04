@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/binary"
 	"fmt"
+
 	"github.com/hdt3213/rdb/model"
 )
 
@@ -123,17 +124,17 @@ func (dec *Decoder) readStreamEntries() ([]*model.StreamEntry, error) {
 // readStreamEntryContent read messages in a stream entry
 func (dec *Decoder) readStreamEntryContent(buf []byte, cursor *int, firstId *model.StreamId) (*model.StreamEntry, error) {
 	// read count
-	count, err := dec.readListPackEntryAsUint(buf, cursor)
+	count, err := dec.readListPackEntryAsInt(buf, cursor)
 	if err != nil {
 		return nil, fmt.Errorf("read stream entry count failed: %v", err)
 	}
-	deleted, err := dec.readListPackEntryAsUint(buf, cursor)
+	deleted, err := dec.readListPackEntryAsInt(buf, cursor)
 	if err != nil {
 		return nil, fmt.Errorf("read stream entry deleted count failed: %v", err)
 	}
 
 	// read field names of master entry
-	fieldNum0, err := dec.readListPackEntryAsUint(buf, cursor)
+	fieldNum0, err := dec.readListPackEntryAsInt(buf, cursor)
 	if err != nil {
 		return nil, fmt.Errorf("read stream field number failed: %v", err)
 	}
@@ -153,26 +154,27 @@ func (dec *Decoder) readStreamEntryContent(buf []byte, cursor *int, firstId *mod
 
 	total := count + deleted
 	msgs := make([]*model.StreamMessage, 0, total)
-	for i := uint64(0); i < total; i++ {
-		flag, err := dec.readListPackEntryAsUint(buf, cursor)
+	for i := int64(0); i < total; i++ {
+		flag, err := dec.readListPackEntryAsInt(buf, cursor)
 		if err != nil {
 			return nil, fmt.Errorf("read stream item flag failed: %v", err)
 		}
-		ms, err := dec.readListPackEntryAsUint(buf, cursor)
+		ms, err := dec.readListPackEntryAsInt(buf, cursor)
 		if err != nil {
 			return nil, fmt.Errorf("read stream item id ms failed: %v", err)
 		}
-		seq, err := dec.readListPackEntryAsUint(buf, cursor)
+		seq, err := dec.readListPackEntryAsInt(buf, cursor)
 		if err != nil {
 			return nil, fmt.Errorf("read stream item id seq failed: %v", err)
 		}
+		// ms and seq may be negative
 		msgId := &model.StreamId{
-			Ms:       ms + firstId.Ms,
-			Sequence: seq + firstId.Sequence,
+			Ms:       uint64(ms + int64(firstId.Ms)),
+			Sequence: uint64(seq + int64(firstId.Sequence)),
 		}
 		fieldNum := masterFieldNum
 		if flag&StreamItemFlagSameFields == 0 {
-			fieldNum0, err := dec.readListPackEntryAsUint(buf, cursor)
+			fieldNum0, err := dec.readListPackEntryAsInt(buf, cursor)
 			if err != nil {
 				return nil, fmt.Errorf("read stream item field number failed: %v", err)
 			}
