@@ -5,8 +5,8 @@ import "strconv"
 // StreamObject stores a stream object
 type StreamObject struct {
 	*BaseObject
-	// IsV2 means is RDB_TYPE_STREAM_LISTPACKS_2`
-	IsV2 bool `json:"isV2,omitempty"`
+	// Version 2 means is RDB_TYPE_STREAM_LISTPACKS_2, 3 means is RDB_TYPE_STREAM_LISTPACKS_3
+	Version uint `json:"version,omitempty"`
 	// Entries stores messages in stream
 	Entries []*StreamEntry `json:"entries,omitempty"`
 	// Groups is consumer groups of stream
@@ -75,7 +75,8 @@ type StreamNAck struct {
 
 // StreamConsumer is a consumer
 type StreamConsumer struct {
-	Name     string      `json:"name"`
-	SeenTime uint64      `json:"seenTime"`
-	Pending  []*StreamId `json:"pending,omitempty"`
+	Name       string      `json:"name"`
+	SeenTime   uint64      `json:"seenTime"`
+	Pending    []*StreamId `json:"pending,omitempty"`
+	ActiveTime uint64      `json:"activeTime"` // since rdb11, see https://github.com/redis/redis/pull/11099
 }

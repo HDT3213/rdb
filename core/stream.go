@@ -16,7 +16,7 @@ const (
 	StreamItemFlagSameFields = 1 << 1
 )
 
-func (dec *Decoder) readStreamListPacks(isV2 bool) (*model.StreamObject, error) {
+func (dec *Decoder) readStreamListPacks(version uint) (*model.StreamObject, error) {
 	entries, err := dec.readStreamEntries()
 	if err != nil {
 		return nil, err
@@ -35,7 +35,7 @@ func (dec *Decoder) readStreamListPacks(isV2 bool) (*model.StreamObject, error) 
 		LastId:  lastId,
 	}
 
-	if isV2 {
+	if version >= 2 {
 		firstId, err := dec.readStreamId()
 		if err != nil {
 			return nil, err
@@ -52,12 +52,12 @@ func (dec *Decoder) readStreamListPacks(isV2 bool) (*model.StreamObject, error) 
 		}
 		stream.AddedEntriesCount = addedCount
 	}
-	groups, err := dec.readStreamGroups(isV2)
+	groups, err := dec.readStreamGroups(version)
 	if err != nil {
 		return nil, err
 	}
 	stream.Groups = groups
-	stream.IsV2 = isV2
+	stream.Version = version
 	return stream, nil
 }
 
@@ -215,7 +215,7 @@ func (dec *Decoder) readStreamEntryContent(buf []byte, cursor *int, firstId *mod
 	}, nil
 }
 
-func (dec *Decoder) readStreamGroups(isV2 bool) ([]*model.StreamGroup, error) {
+func (dec *Decoder) readStreamGroups(version uint) ([]*model.StreamGroup, error) {
 	groupCount, _, err := dec.readLength()
 	if err != nil {
 		return nil, err
@@ -232,7 +232,7 @@ func (dec *Decoder) readStreamGroups(isV2 bool) ([]*model.StreamGroup, error) {
 		}
 
 		var entriesRead uint64
-		if isV2 {
+		if version >= 2 {
 			entriesRead, _, err = dec.readLength()
 			if err != nil {
 				return nil, err
@@ -288,6 +288,13 @@ func (dec *Decoder) readStreamGroups(isV2 bool) ([]*model.StreamGroup, error) {
 				return nil, err
 			}
 			seenTime := binary.LittleEndian.Uint64(dec.buffer)
+			activeTime := seenTime
+			if version >= 3 {
+				if err := dec.readFull(dec.buffer); err != nil {
+					return nil, err
+				}
+				activeTime = binary.LittleEndian.Uint64(dec.buffer)
+			}
 			consumerPendingCount, _, err := dec.readLength()
 			if err != nil {
 				return nil, err
@@ -308,9 +315,10 @@ func (dec *Decoder) readStreamGroups(isV2 bool) ([]*model.StreamGroup, error) {
 				})
 			}
 			consumers = append(consumers, &model.StreamConsumer{
-				SeenTime: seenTime,
-				Name:     unsafeBytes2Str(consumerName),
-				Pending:  consumerPending,
+				SeenTime:   seenTime,
+				Name:       unsafeBytes2Str(consumerName),
+				Pending:    consumerPending,
+				ActiveTime: activeTime,
 			})
 		}
 		groups = append(groups, &model.StreamGroup{

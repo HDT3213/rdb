@@ -48,7 +48,7 @@ var magicNumber = []byte("REDIS")
 
 const (
 	minVersion = 1
-	maxVersion = 11
+	maxVersion = 12
 )
 
 const (
@@ -85,6 +85,7 @@ const (
 	typeListQuickList2
 	typeStreamListPacks2
 	typeSetListPack
+	typeStreamListPacks3
 )
 
 var encodingMap = map[int]string{
@@ -276,9 +277,14 @@ func (dec *Decoder) readObject(flag byte, base *model.BaseObject) (model.RedisOb
 			BaseObject: base,
 			Entries:    entries,
 		}, nil
-	case typeStreamListPacks, typeStreamListPacks2:
-		isV2 := flag == typeStreamListPacks2
-		stream, err := dec.readStreamListPacks(isV2)
+	case typeStreamListPacks, typeStreamListPacks2, typeStreamListPacks3:
+		var version uint = 1
+		if flag == typeStreamListPacks2 {
+			version = 2
+		} else if flag == typeStreamListPacks3 {
+			version = 3
+		}
+		stream, err := dec.readStreamListPacks(version)
 		if err != nil {
 			return nil, err
 		}

@@ -6,12 +6,12 @@ func sizeOfStreamObject(obj *model.StreamObject) int {
 	size := sizeOfPointer()*2 + 8 + 16 + // size of stream struct
 		sizeOfPointer() + 8*2 + // rax struct
 		sizeOfStreamRaxTree(len(obj.Entries))
-	if obj.IsV2 {
+	if obj.Version >= 2 {
 		size += 16*2 + 8 // size of 2 new streamID and a uint64
 	}
 	for _, group := range obj.Groups {
 		size += sizeOfPointer()*2 + 16 // size of struct streamCG
-		if obj.IsV2 {
+		if obj.Version >= 2 {
 			size += 8 // size of new field entries_read
 		}
 		pendingCount := len(group.Pending)

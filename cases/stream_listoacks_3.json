@@ -1,0 +1,3 @@
+[
+{"db":0,"key":"mystream","size":1776,"type":"stream","encoding":"","version":3,"entries":[{"firstMsgId":"1704557973866-0","fields":["name","surname"],"msgs":[{"id":"1704557973866-0","fields":{"name":"Sara","surname":"OConnor"},"deleted":false}]}],"groups":[{"name":"consumer-group-name","lastId":"1704557973866-0","pending":[{"id":"1704557973866-0","deliveryTime":1704557998397,"deliveryCount":1}],"consumers":[{"name":"consumer-name","seenTime":1704557998397,"pending":["1704557973866-0"],"activeTime":1704557998397}],"entriesRead":1}],"len":1,"lastId":"1704557973866-0","firstId":"1704557973866-0","maxDeletedId":"0-0","addedEntriesCount":1}
+]
