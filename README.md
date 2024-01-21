@@ -57,7 +57,7 @@ Options:
   -sep separator for flamegraph, rdb will separate key by it, default value is ":". 
                 supporting multi separators: -sep sep1 -sep sep2 
   -regex using regex expression filter keys
-  -no-expired filter expired keys
+  -no-expired reserve expired keys
 
 Examples:
 parameters between '[' and ']' is optional
@@ -101,6 +101,158 @@ The examples for json result:
     {"db":0,"key":"set","expiration":"2022-02-18T06:15:29.18+08:00","size":39,"type":"set","members":["2hzm5rnmkmwb3zqd","tdje6bk22c6ddlrw"]}
 ]
 ```
+
+<details>
+<summary>Json Fromat Detail</summary>
+  
+## string 
+
+```json
+{
+    "db": 0,
+    "key": "string",
+    "size": 10, // estimated memory size
+    "type": "string",
+	"expiration":"2022-02-18T06:15:29.18+08:00",
+    "value": "aaaaaaa"
+}
+```
+
+## list
+
+```json
+{
+    "db": 0,
+    "key": "list",
+    "expiration": "2022-02-18T06:15:29.18+08:00",
+    "size": 66,
+    "type": "list",
+    "values": [
+        "7fbn7xhcnu",
+        "lmproj6c2e",
+        "e5lom29act",
+        "yy3ux925do"
+    ]
+}
+```
+
+## set
+
+```json
+{
+    "db": 0,
+    "key": "set",
+    "expiration": "2022-02-18T06:15:29.18+08:00",
+    "size": 39,
+    "type": "set",
+    "members": [
+        "2hzm5rnmkmwb3zqd",
+        "tdje6bk22c6ddlrw"
+    ]
+}
+```
+
+## hash
+
+```json
+{
+    "db": 0,
+    "key": "hash",
+    "size": 64,
+    "type": "hash",
+	"expiration": "2022-02-18T06:15:29.18+08:00",
+    "hash": {
+        "ca32mbn2k3tp41iu": "ca32mbn2k3tp41iu",
+        "mddbhxnzsbklyp8c": "mddbhxnzsbklyp8c"
+    }
+}
+```
+
+## zset
+
+```json
+{
+    "db": 0,
+    "key": "zset",
+    "expiration": "2022-02-18T06:15:29.18+08:00",
+    "size": 57,
+    "type": "zset",
+    "entries": [
+        {
+            "member": "zn4ejjo4ths63irg",
+            "score": 1
+        },
+        {
+            "member": "1ik4jifkg6olxf5n",
+            "score": 2
+        }
+    ]
+}
+```
+
+## stream
+
+```json
+{
+    "db": 0,
+    "key": "mystream",
+    "size": 1776,
+    "type": "stream",
+    "encoding": "",
+    "version": 3, // Version 2 means is RDB_TYPE_STREAM_LISTPACKS_2, 3 means is RDB_TYPE_STREAM_LISTPACKS_3
+	// StreamEntry is a node in the underlying radix tree of redis stream, of type listpacks, which contains several messages. There is no need to care about which entry the message belongs to when using it.
+    "entries": [ 
+        {
+            "firstMsgId": "1704557973866-0", // ID of the master entry at listpack head 
+            "fields": [ // master fields, used for compressing size
+                "name",
+                "surname"
+            ],
+            "msgs": [ // messages in entry
+                {
+                    "id": "1704557973866-0",
+                    "fields": {
+                        "name": "Sara",
+                        "surname": "OConnor"
+                    },
+                    "deleted": false
+                }
+            ]
+        }
+    ],
+    "groups": [ // consumer groups
+        {
+            "name": "consumer-group-name",
+            "lastId": "1704557973866-0",
+            "pending": [ // pending messages
+                {
+                    "id": "1704557973866-0",
+                    "deliveryTime": 1704557998397,
+                    "deliveryCount": 1
+                }
+            ],
+            "consumers": [ // consumers in the group
+                {
+                    "name": "consumer-name",
+                    "seenTime": 1704557998397,
+                    "pending": [
+                        "1704557973866-0"
+                    ],
+                    "activeTime": 1704557998397
+                }
+            ],
+            "entriesRead": 1
+        }
+    ],
+    "len": 1, // current number of messages inside this stream
+    "lastId": "1704557973866-0",
+    "firstId": "1704557973866-0",
+    "maxDeletedId": "0-0",
+    "addedEntriesCount": 1
+}
+```
+
+</details>
 
 # Generate Memory Report
 
@@ -247,6 +399,9 @@ func main() {
 		case parser.ZSetType:
 			zset := o.(*parser.ZSetObject)
 			println(zset.Key, zset.Entries)
+		case parser.StreamType:
+			stream := o.(*parser.StreamObject)
+			println(stream.Entries, stream.Groups)
 		}
 		// return true to continue, return false to stop the iteration
 		return true

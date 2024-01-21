@@ -21,6 +21,8 @@ const (
 	AuxType = model.AuxType
 	// DBSizeType is for RDB_OPCODE_RESIZEDB
 	DBSizeType = model.DBSizeType
+	// StreamType is for redis stream
+	StreamType = model.StreamType
 )
 
 type (
@@ -36,6 +38,8 @@ type (
 	HashObject = model.HashObject
 	// ZSetObject stores a sorted set object
 	ZSetObject = model.ZSetObject
+	// StreamObject stores a redis stream object
+	StreamObject = model.StreamObject
 	// AuxObject stores redis metadata
 	AuxObject = model.AuxObject
 	// DBSizeObject stores db size metadata

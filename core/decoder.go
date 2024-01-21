@@ -39,6 +39,7 @@ func (dec *Decoder) WithSpecialOpCode() *Decoder {
 	return dec
 }
 
+// WithSpecialType enables returning redis module data structure to callback
 func (dec *Decoder) WithSpecialType(moduleType string, f ModuleTypeHandleFunc) *Decoder {
 	dec.withSpecialTypes[moduleType] = f
 	return dec

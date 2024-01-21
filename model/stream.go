@@ -11,7 +11,7 @@ type StreamObject struct {
 	Entries []*StreamEntry `json:"entries,omitempty"`
 	// Groups is consumer groups of stream
 	Groups []*StreamGroup `json:"groups,omitempty"`
-	// Length is current number of elements inside this stream
+	// Length is current number of messages inside this stream
 	Length uint64 `json:"len"`
 	// LastId is the ID of last entry in stream
 	LastId *StreamId `json:"lastId"`
@@ -27,8 +27,8 @@ func (obj *StreamObject) GetType() string {
 	return StreamType
 }
 
-// StreamEntry is a group of messages in stream
-// Actually, it is a node of radix tree which may contains
+// StreamEntry is a node in the underlying radix tree of redis stream, of type listpacks, which contains several messages.
+// There is no need to care about which entry the message belongs to when using it.
 type StreamEntry struct {
 	FirstMsgId *StreamId        `json:"firstMsgId"`
 	Fields     []string         `json:"fields"`

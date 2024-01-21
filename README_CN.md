@@ -89,6 +89,157 @@ rdb -c json -o intset_16.json cases/intset_16.rdb
 ]
 ```
 
+<details>
+<summary>Json 格式</summary>
+  
+## string 
+
+```json
+{
+    "db": 0,
+    "key": "string",
+    "size": 10, // 估计的内存占用量
+    "type": "string",
+	"expiration":"2022-02-18T06:15:29.18+08:00",
+    "value": "aaaaaaa"
+}
+```
+
+## list
+
+```json
+{
+    "db": 0,
+    "key": "list",
+    "expiration": "2022-02-18T06:15:29.18+08:00",
+    "size": 66,
+    "type": "list",
+    "values": [
+        "7fbn7xhcnu",
+        "lmproj6c2e",
+        "e5lom29act",
+        "yy3ux925do"
+    ]
+}
+```
+
+## set
+
+```json
+{
+    "db": 0,
+    "key": "set",
+    "expiration": "2022-02-18T06:15:29.18+08:00",
+    "size": 39,
+    "type": "set",
+    "members": [
+        "2hzm5rnmkmwb3zqd",
+        "tdje6bk22c6ddlrw"
+    ]
+}
+```
+
+## hash
+
+```json
+{
+    "db": 0,
+    "key": "hash",
+    "size": 64,
+    "type": "hash",
+	"expiration": "2022-02-18T06:15:29.18+08:00",
+    "hash": {
+        "ca32mbn2k3tp41iu": "ca32mbn2k3tp41iu",
+        "mddbhxnzsbklyp8c": "mddbhxnzsbklyp8c"
+    }
+}
+```
+
+## zset
+
+```json
+{
+    "db": 0,
+    "key": "zset",
+    "expiration": "2022-02-18T06:15:29.18+08:00",
+    "size": 57,
+    "type": "zset",
+    "entries": [
+        {
+            "member": "zn4ejjo4ths63irg",
+            "score": 1
+        },
+        {
+            "member": "1ik4jifkg6olxf5n",
+            "score": 2
+        }
+    ]
+}
+```
+
+## stream
+
+```json
+{
+    "db": 0,
+    "key": "mystream",
+    "size": 1776,
+    "type": "stream",
+    "encoding": "",
+    "version": 3, // Version 2 表示 RDB_TYPE_STREAM_LISTPACKS_2, 3 表示RDB_TYPE_STREAM_LISTPACKS_3
+    "entries": [ // StreamEntry 是 redis stream 底层 radix tree 中的一个节点，类型为 listpacks, 其中包含了若干条消息。在使用时无需关心消息属于哪个 entry。
+        {
+            "firstMsgId": "1704557973866-0", // ID of the master entry at listpack head 
+            "fields": [ // master fields, used for compressing size
+                "name",
+                "surname"
+            ],
+            "msgs": [ // messages in entry
+                {
+                    "id": "1704557973866-0",
+                    "fields": {
+                        "name": "Sara",
+                        "surname": "OConnor"
+                    },
+                    "deleted": false
+                }
+            ]
+        }
+    ],
+    "groups": [ // consumer groups
+        {
+            "name": "consumer-group-name",
+            "lastId": "1704557973866-0",
+            "pending": [ // pending messages
+                {
+                    "id": "1704557973866-0",
+                    "deliveryTime": 1704557998397,
+                    "deliveryCount": 1
+                }
+            ],
+            "consumers": [ // consumers in the group
+                {
+                    "name": "consumer-name",
+                    "seenTime": 1704557998397,
+                    "pending": [
+                        "1704557973866-0"
+                    ],
+                    "activeTime": 1704557998397
+                }
+            ],
+            "entriesRead": 1
+        }
+    ],
+    "len": 1, // current number of messages inside this stream
+    "lastId": "1704557973866-0",
+    "firstId": "1704557973866-0",
+    "maxDeletedId": "0-0",
+    "addedEntriesCount": 1
+}
+```
+
+</details>
+
 # 生成内存用量报告
 
 本工具使用 RDB 编码后的大小来估算键值对占用的内存大小。
