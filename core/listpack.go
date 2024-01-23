@@ -51,6 +51,27 @@ func readVarInt(buf []byte, cursor *int) uint32 {
 	}
 	return v
 }
+func lpEncodeBackLen(l int) int {
+	if l <= 127 {
+		return 1
+	} else if l < 16383 { //2^{14} - 1
+		return 2
+	} else if l < 2097151 { //2^{21} - 1
+		return 3
+	} else if l < 268435455 { // 2^{28} - 1
+		return 4
+	} else {
+		return 5
+	}
+}
+
+// 针对压缩的list
+func readVarInt2(cursor *int, l uint16) uint32 {
+	realLen := l + 2 //比数据大于两个长度
+	byteLen := lpEncodeBackLen(int(realLen))
+	*cursor += byteLen
+	return uint32(realLen)
+}
 
 // readListPackEntry returns: content(string), length, error
 func (dec *Decoder) readListPackEntry(buf []byte, cursor *int) ([]byte, uint32, error) {
@@ -97,7 +118,7 @@ func (dec *Decoder) readListPackEntry(buf []byte, cursor *int) ([]byte, uint32, 
 		if err != nil {
 			return nil, 0, err
 		}
-		length = readVarInt(buf, cursor) // read element length
+		length = readVarInt2(cursor, strLen) // read element length
 		return result, length, nil
 	}
 	// assert header == 1111 xxxx
