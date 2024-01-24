@@ -66,8 +66,7 @@ func lpEncodeBackLen(l int) int {
 }
 
 // 针对压缩的list
-func readVarInt2(cursor *int, l uint16, buf []byte) uint32 {
-	realLen := l + 2 //比数据大于两个长度
+func readVarInt2(cursor *int, realLen uint16, buf []byte) uint32 {
 	byteLen := lpEncodeBackLen(int(realLen))
 	buffer := buf[*cursor : *cursor+byteLen]
 	bufferLen := len(buffer) - 1
@@ -105,7 +104,8 @@ func (dec *Decoder) readListPackEntry(buf []byte, cursor *int) ([]byte, uint32, 
 		if err != nil {
 			return nil, 0, err
 		}
-		length = readVarInt(buf, cursor) // read element length
+		//length = readVarInt(buf, cursor)                    // read element length
+		length = readVarInt2(cursor, uint16(strLen+1), buf) // read element length
 		return result, length, nil
 	}
 	// assert header == 11xx xxxx
@@ -121,7 +121,8 @@ func (dec *Decoder) readListPackEntry(buf []byte, cursor *int) ([]byte, uint32, 
 			val = -(8191 - val) - 1 // val is uint, must use -(8191 - val), val - 8191 will cause overflow
 		}
 		result = []byte(strconv.FormatInt(int64(val), 10))
-		length = readVarInt(buf, cursor) // read element length
+		//length = readVarInt(buf, cursor) // read element length
+		length = readVarInt2(cursor, 2, buf) // read element length
 		return result, length, nil
 	case 14: // 1110 xxxx -> str, type(len) == uint12
 		dec.buffer[0] = header & 0x0f
@@ -131,7 +132,7 @@ func (dec *Decoder) readListPackEntry(buf []byte, cursor *int) ([]byte, uint32, 
 		if err != nil {
 			return nil, 0, err
 		}
-		length = readVarInt2(cursor, strLen, buf) // read element length
+		length = readVarInt2(cursor, strLen+2, buf) // read element length
 		return result, length, nil
 	}
 	// assert header == 1111 xxxx
