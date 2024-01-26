@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/binary"
 	"errors"
+
 	"github.com/hdt3213/rdb/model"
 )
 
@@ -163,11 +164,11 @@ func (dec *Decoder) readListPackHash() (map[string][]byte, *model.ListpackDetail
 	size := readListPackLength(buf, &cursor)
 	m := make(map[string][]byte)
 	for i := 0; i < size; i += 2 {
-		key, _, err := dec.readListPackEntry(buf, &cursor)
+		key, err := dec.readListPackEntryAsString(buf, &cursor)
 		if err != nil {
 			return nil, nil, err
 		}
-		val, _, err := dec.readListPackEntry(buf, &cursor)
+		val, err := dec.readListPackEntryAsString(buf, &cursor)
 		if err != nil {
 			return nil, nil, err
 		}

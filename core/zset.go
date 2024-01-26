@@ -1,8 +1,9 @@
 package core
 
 import (
-	"github.com/hdt3213/rdb/model"
 	"strconv"
+
+	"github.com/hdt3213/rdb/model"
 )
 
 func (dec *Decoder) readZSet(zset2 bool) ([]*model.ZSetEntry, error) {
@@ -74,11 +75,11 @@ func (dec *Decoder) readListPackZSet() ([]*model.ZSetEntry, *model.ListpackDetai
 	size := readListPackLength(buf, &cursor)
 	entries := make([]*model.ZSetEntry, 0, size)
 	for i := 0; i < size; i += 2 {
-		member, _, err := dec.readListPackEntry(buf, &cursor)
+		member, err := dec.readListPackEntryAsString(buf, &cursor)
 		if err != nil {
 			return nil, nil, err
 		}
-		scoreLiteral, _, err := dec.readListPackEntry(buf, &cursor)
+		scoreLiteral, err := dec.readListPackEntryAsString(buf, &cursor)
 		if err != nil {
 			return nil, nil, err
 		}

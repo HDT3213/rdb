@@ -141,14 +141,14 @@ func (dec *Decoder) readStreamEntryContent(buf []byte, cursor *int, firstId *mod
 	masterFieldNum := int(fieldNum0)
 	masterFieldNames := make([]string, masterFieldNum)
 	for i := 0; i < masterFieldNum; i++ {
-		name, _, err := dec.readListPackEntry(buf, cursor)
+		name, err := dec.readListPackEntryAsString(buf, cursor)
 		if err != nil {
 			return nil, fmt.Errorf("read field name of stream entry failed: %v", err)
 		}
 		masterFieldNames[i] = string(name)
 	}
-	// read end flag
-	if _, _, err = dec.readListPackEntry(buf, cursor); err != nil {
+	// read lp count of master entry
+	if _, err = dec.readListPackEntryAsString(buf, cursor); err != nil {
 		return nil, fmt.Errorf("read fields end flag failed: %v", err)
 	}
 
@@ -191,20 +191,20 @@ func (dec *Decoder) readStreamEntryContent(buf []byte, cursor *int, firstId *mod
 			if flag&StreamItemFlagSameFields > 0 {
 				fieldName = masterFieldNames[i]
 			} else {
-				fieldNameBin, _, err := dec.readListPackEntry(buf, cursor)
+				fieldNameBin, err := dec.readListPackEntryAsString(buf, cursor)
 				if err != nil {
 					return nil, fmt.Errorf("read stream item field name failed: %v", err)
 				}
 				fieldName = unsafeBytes2Str(fieldNameBin)
 			}
-			fieldValue, _, err := dec.readListPackEntry(buf, cursor)
+			fieldValue, err := dec.readListPackEntryAsString(buf, cursor)
 			if err != nil {
 				return nil, fmt.Errorf("read stream item field value failed: %v", err)
 			}
 			msg.Fields[fieldName] = unsafeBytes2Str(fieldValue)
 		}
-		// read end flag
-		if _, _, err = dec.readListPackEntry(buf, cursor); err != nil {
+		// read lp count
+		if _,  err = dec.readListPackEntryAsString(buf, cursor); err != nil {
 			return nil, fmt.Errorf("read fields end flag failed: %v", err)
 		}
 		msgs = append(msgs, msg)

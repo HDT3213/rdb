@@ -3,10 +3,11 @@ package core
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/hdt3213/rdb/model"
 	"math"
 	"sort"
 	"strconv"
+
+	"github.com/hdt3213/rdb/model"
 )
 
 func (dec *Decoder) readSet() ([][]byte, error) {
@@ -73,7 +74,7 @@ func (dec *Decoder) readListPackSet() ([][]byte, *model.ListpackDetail, error) {
 	size := readListPackLength(buf, &cursor)
 	values := make([][]byte, 0, size)
 	for i := 0; i < size; i += 1 {
-		member, _, err := dec.readListPackEntry(buf, &cursor)
+		member, err := dec.readListPackEntryAsString(buf, &cursor)
 		if err != nil {
 			return nil, nil, err
 		}
