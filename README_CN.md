@@ -269,9 +269,44 @@ database,key,type,size,size_readable,element_count
 0,set,set,39,39B,2
 ```
 
+# 前缀分析
+
+如果您可以根据 key 的前缀区分模块，比如用户数据的 key 是 `User:<uid>`， Post 的模式是 `Post:<postid>`, 用户统计信息是 `Stat:User:???`, Post 的统计信息是 `Stat:User:???`。 那么我们可以通过前缀分析来得到各模块的情况：
+
+```csv
+database,prefix,size,size_readable,key_count
+0,Post:,1170456184,1.1G,701821
+0,Stat:,405483812,386.7M,3759832
+0,Stat:Post:,291081520,277.6M,2775043
+0,User:,241572272,230.4M,265810
+0,Topic:,171146778,163.2M,694498
+0,Topic:Post:,163635096,156.1M,693758
+0,Stat:Post:View,133201208,127M,1387516
+0,Stat:User:,114395916,109.1M,984724
+0,Stat:Post:Comment:,80178504,76.5M,693758
+0,Stat:Post:Like:,77701688,74.1M,693768
+```
+
+命令格式：
+
+```bash
+rdb -c prefix [-n <top-n>] [-max-depth <max-depth>] -o <output_path> <source_path>
+```
+
+- 前缀分析结果按照内存空间从大到小排列，`-n` 选项可以指定输出的数量。默认全部输出。
+
+- `-max-depth` 可以限制前缀树的的最大深度。比如示例中 `Stat:` 的深度是1，`Stat:User:` 和 `Stat:Post:` 的深度是 2。
+
+Example:
+
+```bash
+rdb -c prefix -n -o prefix.csv cases/memory.rdb
+```
+
+
 # 火焰图
 
-在很多时候并不是少量的大键值对占据了大部分内存，而是数量巨大的小键值对消耗了很多内存。目前市面上尚无分析工具可以有效处理这个问题。
+在很多时候并不是少量的大键值对占据了大部分内存，而是数量巨大的小键值对消耗了很多内存。
 
 很多企业要求使用 Redis key 采用类似于 `user:basic.info:{userid}` 的命名规范，所以我们可以使用分隔符将 key 拆分并将拥有相同前缀的 key 聚合在一起。
 

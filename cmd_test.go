@@ -52,6 +52,11 @@ func TestCmd(t *testing.T) {
 	if f, _ := os.Stat("tmp/memory_regex.csv"); f == nil {
 		t.Error("command memory failed")
 	}
+	os.Args = []string{"", "-c", "prefix", "-o", "tmp/tree.csv", "cases/tree.rdb"}
+	main()
+	if f, _ := os.Stat("tmp/tree.csv"); f == nil {
+		t.Error("command prefix failed")
+	}
 
 	// test error command line
 	os.Args = []string{"", "-c", "json", "-o", "tmp/output", "/none/a"}

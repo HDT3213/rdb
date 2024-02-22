@@ -3,17 +3,18 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/hdt3213/rdb/helper"
 	"os"
 	"strings"
+
+	"github.com/hdt3213/rdb/helper"
 )
 
 const help = `
 This is a tool to parse Redis' RDB files
 Options:
-  -c command, including: json/memory/aof/bigkey/flamegraph
+  -c command, including: json/memory/aof/bigkey/prefix/flamegraph
   -o output file path
-  -n number of result, using in 
+  -n number of result, using in command: bigkey/prefix
   -port listen port for flame graph web service
   -sep separator for flamegraph, rdb will separate key by it, default value is ":". 
 		supporting multi separators: -sep sep1 -sep sep2 
@@ -30,7 +31,9 @@ parameters between '[' and ']' is optional
   rdb -c aof -o dump.aof dump.rdb
 4. get largest keys
   rdb -c bigkey [-o dump.aof] [-n 10] dump.rdb
-5. draw flamegraph
+5. get number and memory size by prefix
+  rdb -c prefix [-n 10] [-max-depth 3] [-o prefix-report.csv] dump.rdb
+6. draw flamegraph
   rdb -c flamegraph [-port 16379] [-sep :] dump.rdb
 `
 
@@ -54,9 +57,12 @@ func main() {
 	var seps separators
 	var regexExpr string
 	var noExpired bool
+	var maxDepth int
+	var err error
 	flagSet.StringVar(&cmd, "c", "", "command for rdb: json")
 	flagSet.StringVar(&output, "o", "", "output file path")
 	flagSet.IntVar(&n, "n", 0, "")
+	flagSet.IntVar(&maxDepth, "max-depth", 0, "max depth of prefix tree")
 	flagSet.IntVar(&port, "port", 0, "listen port for web")
 	flagSet.Var(&seps, "sep", "separator for flame graph")
 	flagSet.StringVar(&regexExpr, "regex", "", "regex expression")
@@ -81,7 +87,19 @@ func main() {
 		options = append(options, helper.WithNoExpiredOption())
 	}
 
-	var err error
+	var outputFile *os.File
+	if output == "" {
+		outputFile = os.Stdout
+	} else {
+		outputFile, err = os.Create(output)
+		if err != nil {
+			fmt.Printf("open output faild: %v", err)
+		}
+		defer func() {
+			_ = outputFile.Close()
+		}()
+	}
+
 	switch cmd {
 	case "json":
 		err = helper.ToJsons(src, output, options...)
@@ -90,19 +108,9 @@ func main() {
 	case "aof":
 		err = helper.ToAOF(src, output, options)
 	case "bigkey":
-		if output == "" {
-			err = helper.FindBiggestKeys(src, n, os.Stdout, options...)
-		} else {
-			var outputFile *os.File
-			outputFile, err = os.Create(output)
-			if err != nil {
-				fmt.Printf("open output faild: %v", err)
-			}
-			defer func() {
-				_ = outputFile.Close()
-			}()
-			err = helper.FindBiggestKeys(src, n, outputFile, options...)
-		}
+		err = helper.FindBiggestKeys(src, n, outputFile, options...)
+	case "prefix":
+		err = helper.PrefixAnalyse(src, n, maxDepth, outputFile, options...)
 	case "flamegraph":
 		_, err = helper.FlameGraph(src, port, seps, options...)
 		if err != nil {

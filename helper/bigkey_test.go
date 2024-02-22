@@ -1,13 +1,14 @@
 package helper
 
 import (
-	"github.com/hdt3213/rdb/model"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"testing"
+
+	"github.com/hdt3213/rdb/model"
 )
 
 func TestTopList(t *testing.T) {
@@ -24,7 +25,7 @@ func TestTopList(t *testing.T) {
 		}
 		objects = append(objects, o)
 	}
-	topList := newRedisHeap(topN)
+	topList := newToplist(topN)
 	for _, o := range objects {
 		topList.add(o)
 	}

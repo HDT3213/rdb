@@ -4,36 +4,13 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"os"
+	"strconv"
+
 	"github.com/hdt3213/rdb/bytefmt"
 	"github.com/hdt3213/rdb/core"
 	"github.com/hdt3213/rdb/model"
-	"os"
-	"sort"
-	"strconv"
 )
-
-type topList struct {
-	list     []model.RedisObject
-	capacity int
-}
-
-func (tl *topList) add(x model.RedisObject) {
-	index := sort.Search(len(tl.list), func(i int) bool {
-		return tl.list[i].GetSize() <= x.GetSize()
-	})
-	tl.list = append(tl.list, x)
-	copy(tl.list[index+1:], tl.list[index:])
-	tl.list[index] = x
-	if len(tl.list) > tl.capacity {
-		tl.list = tl.list[:tl.capacity]
-	}
-}
-
-func newRedisHeap(cap int) *topList {
-	return &topList{
-		capacity: cap,
-	}
-}
 
 // FindBiggestKeys read rdb file and find the largest N keys.
 // The invoker owns output, FindBiggestKeys won't close it
@@ -55,7 +32,7 @@ func FindBiggestKeys(rdbFilename string, topN int, output *os.File, options ...i
 	if dec, err = wrapDecoder(dec, options...); err != nil {
 		return err
 	}
-	top := newRedisHeap(topN)
+	top := newToplist(topN)
 	err = dec.Parse(func(object model.RedisObject) bool {
 		top.add(object)
 		return true
@@ -69,7 +46,8 @@ func FindBiggestKeys(rdbFilename string, topN int, output *os.File, options ...i
 	}
 	csvWriter := csv.NewWriter(output)
 	defer csvWriter.Flush()
-	for _, object := range top.list {
+	for _, o := range top.list {
+		object := o.(model.RedisObject)
 		err = csvWriter.Write([]string{
 			strconv.Itoa(object.GetDBIndex()),
 			object.GetKey(),

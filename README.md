@@ -50,9 +50,9 @@ use `rdb` command in terminal, you can see it's manual
 ```
 This is a tool to parse Redis' RDB files
 Options:
-  -c command, including: json/memory/aof/bigkey/flamegraph
-  -o output file path
-  -n number of result, using in 
+  -c command, including: json/memory/aof/bigkey/prefix/flamegraph
+  -o output file path, if there is no `-o` option, output to stdout
+  -n number of result, using in command: bigkey/prefix
   -port listen port for flame graph web service
   -sep separator for flamegraph, rdb will separate key by it, default value is ":". 
                 supporting multi separators: -sep sep1 -sep sep2 
@@ -69,7 +69,9 @@ parameters between '[' and ']' is optional
   rdb -c aof -o dump.aof dump.rdb
 4. get largest keys
   rdb -c bigkey [-o dump.aof] [-n 10] dump.rdb
-5. draw flamegraph
+5. get number and size by prefix
+  rdb -c prefix [-n 10] [-max-depth 3] [-o prefix-report.csv] dump.rdb
+6. draw flamegraph
   rdb -c flamegraph [-port 16379] [-sep :] dump.rdb
 ```
 
@@ -258,13 +260,13 @@ The examples for json result:
 
 RDB uses rdb encoded size to estimate redis memory usage.
 
-```
+```bash
 rdb -c memory -o <output_path> <source_path>
 ```
 
 Example:
 
-```
+```bash
 rdb -c memory -o mem.csv cases/memory.rdb
 ```
 
@@ -279,6 +281,40 @@ database,key,type,size,size_readable,element_count
 0,zset,zset,57,57B,2
 0,large,string,2056,2K,0
 0,set,set,39,39B,2
+```
+
+# Analyze By Prefix
+
+If you can distinguish modules based on the prefix of the key, for example, the key of user data is `User:<uid>`, the key of Post is `Post:<postid>`, the user statistics is `Stat:User:???`, and the statistics of Post is `Stat:Post:???`.Then we can get the status of each module through prefix analysis:
+
+```csv
+database,prefix,size,size_readable,key_count
+0,Post:,1170456184,1.1G,701821
+0,Stat:,405483812,386.7M,3759832
+0,Stat:Post:,291081520,277.6M,2775043
+0,User:,241572272,230.4M,265810
+0,Topic:,171146778,163.2M,694498
+0,Topic:Post:,163635096,156.1M,693758
+0,Stat:Post:View,133201208,127M,1387516
+0,Stat:User:,114395916,109.1M,984724
+0,Stat:Post:Comment:,80178504,76.5M,693758
+0,Stat:Post:Like:,77701688,74.1M,693768
+```
+
+Format:
+
+```bash
+rdb -c prefix [-n <top-n>] [-max-depth <max-depth>] -o <output_path> <source_path>
+```
+
+- The prefix analysis results are arranged in descending order of memory space. The `-n` option can specify the number of outputs. All are output by default.
+
+- `-max-depth` can limit the maximum depth of the prefix tree. In the above example, the depth of `Stat:` is 1, and the depth of `Stat:User:` and `Stat:Post:` is 2.
+
+Example:
+
+```bash
+rdb -c prefix -n -o prefix.csv cases/memory.rdb
 ```
 
 # Flame Graph
