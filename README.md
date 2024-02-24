@@ -314,7 +314,7 @@ rdb -c prefix [-n <top-n>] [-max-depth <max-depth>] -o <output_path> <source_pat
 Example:
 
 ```bash
-rdb -c prefix -n -o prefix.csv cases/memory.rdb
+rdb -c prefix -n 10 -max-depth 2 -o prefix.csv cases/memory.rdb
 ```
 
 # Flame Graph
