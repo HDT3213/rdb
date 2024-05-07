@@ -89,9 +89,11 @@ var stateChanges = map[string]map[string]struct{}{ // state -> allow next states
 	writtenEndState: {},
 }
 
+const Crc64Jones = 0xad93d23594c935a9
+
 // NewEncoder creates an encoder instance
 func NewEncoder(writer io.Writer) *Encoder {
-	crcTab := crc64.MakeTable(crc64.ISO)
+	crcTab := crc64.MakeTable(Crc64Jones)
 	return &Encoder{
 		writer:          writer,
 		crc:             crc64.New(crcTab),
@@ -147,7 +149,7 @@ func (enc *Encoder) write(p []byte) error {
 	return nil
 }
 
-var rdbHeader = []byte("REDIS0003")
+var rdbHeader = []byte("REDIS0005")
 
 func (enc *Encoder) validateStateChange(toState string) bool {
 	_, ok := stateChanges[enc.state][toState]
