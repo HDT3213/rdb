@@ -149,7 +149,7 @@ func (enc *Encoder) write(p []byte) error {
 	return nil
 }
 
-var rdbHeader = []byte("REDIS0005")
+var rdbHeader = []byte("REDIS0011")
 
 func (enc *Encoder) validateStateChange(toState string) bool {
 	_, ok := stateChanges[enc.state][toState]
