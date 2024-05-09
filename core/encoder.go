@@ -3,8 +3,8 @@ package core
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/hdt3213/rdb/crc64jones"
 	"hash"
-	"hash/crc64"
 	"io"
 )
 
@@ -89,14 +89,11 @@ var stateChanges = map[string]map[string]struct{}{ // state -> allow next states
 	writtenEndState: {},
 }
 
-const Crc64Jones = 0xad93d23594c935a9
-
 // NewEncoder creates an encoder instance
 func NewEncoder(writer io.Writer) *Encoder {
-	crcTab := crc64.MakeTable(Crc64Jones)
 	return &Encoder{
 		writer:          writer,
-		crc:             crc64.New(crcTab),
+		crc:             crc64jones.New(),
 		buffer:          make([]byte, 8),
 		state:           startState,
 		existDB:         make(map[uint]struct{}),
