@@ -2,7 +2,7 @@
 ![download](https://img.shields.io/github/downloads/hdt3213/rdb/total)
 [![Go Reference](https://pkg.go.dev/badge/github.com/hdt3213/rdb.svg)](https://pkg.go.dev/github.com/hdt3213/rdb)
 <br>
-[![Build Status](https://travis-ci.com/HDT3213/rdb.svg?branch=master)](https://app.travis-ci.com/github/HDT3213/rdb)
+[![Build Status](https://github.com/hdt3213/rdb/actions/workflows/main.yml/badge.svg)](https://github.com/HDT3213/rdb/actions?query=branch%3Amaster)
 [![Coverage Status](https://coveralls.io/repos/github/HDT3213/rdb/badge.svg?branch=master)](https://coveralls.io/github/HDT3213/rdb?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/HDT3213/rdb)](https://goreportcard.com/report/github.com/HDT3213/rdb)
 <br>
