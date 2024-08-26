@@ -88,8 +88,6 @@ func TestStringEncoding(t *testing.T) {
 }
 
 func TestRandomStringEncoding(t *testing.T) {
-	buf := bytes.NewBuffer(nil)
-	enc := NewEncoder(buf)
 	size := 1000
 	round := 2000
 	strList := make([]string, size)
@@ -97,6 +95,8 @@ func TestRandomStringEncoding(t *testing.T) {
 		for i := 0; i < size; i++ {
 			strList[i] = RandString(rand.Intn(50))
 		}
+		buf := bytes.NewBuffer(nil)
+		enc := NewEncoder(buf)
 		for _, str := range strList {
 			err := enc.writeString(str)
 			if err != nil {

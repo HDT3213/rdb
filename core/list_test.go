@@ -140,8 +140,6 @@ func TestZipListEncoding(t *testing.T) {
 }
 
 func TestRandomZipListEncoding(t *testing.T) {
-	buf := bytes.NewBuffer(nil)
-	enc := NewEncoder(buf).SetListZipListOpt(64, 64)
 	size := 32
 	round := 10000
 	list := make([]string, size)
@@ -149,6 +147,8 @@ func TestRandomZipListEncoding(t *testing.T) {
 		for i := 0; i < size; i++ {
 			list[i] = RandString(rand.Intn(50))
 		}
+		buf := bytes.NewBuffer(nil)
+		enc := NewEncoder(buf).SetListZipListOpt(64, 64)
 		err := enc.writeZipList(list)
 		if err != nil {
 			t.Error(err)
