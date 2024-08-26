@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"unicode"
 )
 
 func (dec *Decoder) readZipList() ([][]byte, error) {
@@ -118,8 +119,8 @@ func encodeZipListEntry(prevLen uint32, val string) []byte {
 		buf.Write(buf0)
 	}
 	// try int encoding
-	intVal, err := strconv.ParseInt(val, 10, 64)
-	if err == nil {
+	intVal, ok := isEncodableUint64(val)
+	if ok {
 		// use int encoding
 		if intVal >= 0 && intVal <= 12 {
 			buf.Write([]byte{0xf0 | byte(intVal+1)})
@@ -159,4 +160,23 @@ func encodeZipListEntry(prevLen uint32, val string) []byte {
 	}
 	buf.Write([]byte(val))
 	return buf.Bytes()
+}
+
+func isEncodableUint64(s string) (int64, bool) {
+	if s == "" {
+		return 0, false
+	}
+	if s[0] == '0' && len(s) > 1 {
+		return 0, false
+	}
+	for _, r := range s {
+		if !unicode.IsDigit(r) {
+			return 0, false
+		}
+	}
+	intVal, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return 0, false
+	}
+	return intVal, true
 }

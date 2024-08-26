@@ -23,6 +23,9 @@ func TestSetEncoding(t *testing.T) {
 		"8": {
 			[]byte("-9222147483647"), []byte("9222147483647"),
 		},
+		"007": {
+			[]byte("-1"), []byte("02"), []byte("0x3"), []byte("0o4"),
+		},
 	}
 	buf := bytes.NewBuffer(nil)
 	enc := NewEncoder(buf)

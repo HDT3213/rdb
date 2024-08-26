@@ -134,8 +134,8 @@ func (enc *Encoder) tryWriteIntSetEncoding(key string, values [][]byte) (bool, e
 	intList := make([]int64, len(values))
 	for i, v := range values {
 		str := unsafeBytes2Str(v)
-		intV, err := strconv.ParseInt(str, 10, 64)
-		if err != nil {
+		intV, ok := isEncodableUint64(str)
+		if !ok {
 			return false, nil
 		}
 		if intV < min {

@@ -3,6 +3,8 @@ package core
 import (
 	"bytes"
 	"github.com/hdt3213/rdb/model"
+	"math"
+	"strconv"
 	"testing"
 )
 
@@ -17,6 +19,12 @@ func TestListEncoding(t *testing.T) {
 		},
 		"1": {
 			[]byte("1"), []byte("2"), []byte("3"), []byte("4"),
+		},
+		"001": {
+			[]byte("001"), []byte("0x11"), []byte("000"), []byte("0"),
+		},
+		"0": {
+			[]byte("0x11"), []byte("001"), []byte("11111111"), []byte("1"),
 		},
 		"large": list,
 	}
@@ -72,19 +80,38 @@ func TestZipListEncoding(t *testing.T) {
 	buf := bytes.NewBuffer(nil)
 	enc := NewEncoder(buf).SetListZipListOpt(64, 64)
 	list := []string{
+		"",
 		"0",
 		"1",
-		"12",
 		"13",
-		"-1",
 		"127",
+		"32766",
 		"8388607",
 		"16777216",
 		"2147483647",
 		"21474836471",
 		"a",
+		"abc",
+		"007",
+		"+0",
+		"-0",
+		"+1",
+		"-1",
+		"0x11",
+		"0o00",
+		strconv.Itoa(math.MaxInt8),
+		strconv.Itoa(math.MinInt8),
+		strconv.Itoa(math.MaxInt16),
+		strconv.Itoa(math.MinInt16),
+		strconv.Itoa(math.MaxInt32),
+		strconv.Itoa(math.MinInt32),
+		strconv.Itoa(math.MinInt32) + "1",
+		strconv.Itoa(math.MaxInt64),
+		strconv.Itoa(math.MinInt64),
+		strconv.Itoa(math.MinInt64) + "1",
 		RandString(60),
 		RandString(1638),
+		RandString(10000),
 	}
 	err := enc.writeZipList(list)
 	if err != nil {

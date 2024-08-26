@@ -35,6 +35,16 @@ func TestZSetEncoding(t *testing.T) {
 				Score:  2.8,
 			},
 		},
+		"007": {
+			{
+				Member: "000",
+				Score:  3.1,
+			},
+			{
+				Member: "0x10",
+				Score:  9.99,
+			},
+		},
 		"large": entries,
 	}
 	buf := bytes.NewBuffer(nil)

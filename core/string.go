@@ -216,7 +216,7 @@ func (enc *Encoder) writeSimpleString(s string) error {
 }
 
 func (enc *Encoder) tryWriteIntString(s string) (bool, error) {
-	intVal, ok := isEncodableInteger(s)
+	intVal, ok := isEncodableUint32(s)
 	if !ok {
 		return false, nil
 	}
@@ -326,7 +326,7 @@ func (enc *Encoder) writeFloat64(f float64) error {
 // can be encoded and then decoded back.
 // e.g. the following strings can not be encoded as an integer:
 // "007", "-0", "-1", "+0", "+1", "0x11"
-func isEncodableInteger(s string) (int64, bool) {
+func isEncodableUint32(s string) (int64, bool) {
 	if s == "" {
 		return 0, false
 	}

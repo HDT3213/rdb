@@ -3,7 +3,6 @@ package core
 import (
 	"encoding/binary"
 	"errors"
-
 	"github.com/hdt3213/rdb/model"
 )
 
