@@ -62,7 +62,7 @@ func TestStringEncoding(t *testing.T) {
 		strconv.Itoa(math.MaxInt64),
 		strconv.Itoa(math.MinInt64),
 		strconv.Itoa(math.MinInt64) + "1",
-		strings.Repeat("long string", 20000),
+		RandString(20000),
 	}
 	for _, str := range strList {
 		err := enc.writeString(str)

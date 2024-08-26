@@ -18,6 +18,12 @@ func TestHashEncoding(t *testing.T) {
 			"n": []byte(RandString(128)),
 			"o": []byte(RandString(128)),
 		},
+		"001": {
+			"007": []byte(RandString(128)),
+		},
+		"000": {
+			"0x11": []byte(RandString(128)),
+		},
 	}
 	m := make(map[string][]byte)
 	for i := 0; i < 1024; i++ {
