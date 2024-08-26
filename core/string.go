@@ -89,11 +89,11 @@ func (dec *Decoder) readString() ([]byte, error) {
 			b, err := dec.readByte()
 			return []byte(strconv.Itoa(int(int8(b)))), err
 		case encodeInt16:
-			b, err := dec.readUint16()
-			return []byte(strconv.Itoa(int(int16(b)))), err
+			b, err := dec.readInt16()
+			return []byte(strconv.Itoa(int(b))), err
 		case encodeInt32:
-			b, err := dec.readUint32()
-			return []byte(strconv.Itoa(int(int32(b)))), err
+			b, err := dec.readInt32()
+			return []byte(strconv.Itoa(int(b))), err
 		case encodeLZF:
 			return dec.readLZF()
 		default:
@@ -106,24 +106,24 @@ func (dec *Decoder) readString() ([]byte, error) {
 	return res, err
 }
 
-func (dec *Decoder) readUint16() (uint16, error) {
+func (dec *Decoder) readInt16() (int16, error) {
 	err := dec.readFull(dec.buffer[:2])
 	if err != nil {
 		return 0, fmt.Errorf("read uint16 error: %v", err)
 	}
 
 	i := binary.LittleEndian.Uint16(dec.buffer[:2])
-	return i, nil
+	return int16(i), nil
 }
 
-func (dec *Decoder) readUint32() (uint32, error) {
+func (dec *Decoder) readInt32() (int32, error) {
 	err := dec.readFull(dec.buffer[:4])
 	if err != nil {
 		return 0, fmt.Errorf("read uint16 error: %v", err)
 	}
 
 	i := binary.LittleEndian.Uint32(dec.buffer[:4])
-	return i, nil
+	return int32(i), nil
 }
 
 func (dec *Decoder) readLiteralFloat() (float64, error) {
