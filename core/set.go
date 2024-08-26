@@ -95,12 +95,11 @@ func (enc *Encoder) WriteSetObject(key string, values [][]byte, options ...inter
 	if err != nil {
 		return err
 	}
-	if ok {
-		return nil
-	}
-	err = enc.writeSetEncoding(key, values)
-	if err != nil {
-		return err
+	if !ok {
+		err = enc.writeSetEncoding(key, values)
+		if err != nil {
+			return err
+		}
 	}
 	enc.state = writtenObjectState
 	return nil
