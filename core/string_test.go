@@ -2,6 +2,8 @@ package core
 
 import (
 	"bytes"
+	"math"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -38,10 +40,29 @@ func TestStringEncoding(t *testing.T) {
 	buf := bytes.NewBuffer(nil)
 	enc := NewEncoder(buf)
 	strList := []string{
+		"",
 		"abc",
 		"12",
 		"32766",
-		"2147483647",
+		"007",
+		"0",
+		"+0",
+		"-0",
+		"+1",
+		"-1",
+		"0x11",
+		"0o00",
+		strconv.Itoa(math.MaxInt8),
+		strconv.Itoa(math.MinInt8),
+		strconv.Itoa(math.MaxInt16),
+		strconv.Itoa(math.MinInt16),
+		strconv.Itoa(math.MaxInt32),
+		strconv.Itoa(math.MinInt32),
+		strconv.Itoa(math.MinInt32) + "1",
+		strconv.Itoa(math.MaxInt64),
+		strconv.Itoa(math.MinInt64),
+		strconv.Itoa(math.MinInt64) + "1",
+		strings.Repeat("long string", 20000),
 	}
 	for _, str := range strList {
 		err := enc.writeString(str)

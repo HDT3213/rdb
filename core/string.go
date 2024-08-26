@@ -7,6 +7,7 @@ import (
 	"github.com/hdt3213/rdb/lzf"
 	"math"
 	"strconv"
+	"unicode"
 )
 
 const (
@@ -215,11 +216,11 @@ func (enc *Encoder) writeSimpleString(s string) error {
 }
 
 func (enc *Encoder) tryWriteIntString(s string) (bool, error) {
-	intVal, err := strconv.ParseInt(s, 10, 64)
-	if err != nil {
-		// is not a integer
+	intVal, ok := isEncodableInteger(s)
+	if !ok {
 		return false, nil
 	}
+	var err error
 	if intVal >= math.MinInt8 && intVal <= math.MaxInt8 {
 		err = enc.write([]byte{encodeInt8Prefix, byte(int8(intVal))})
 	} else if intVal >= math.MinInt16 && intVal <= math.MaxInt16 {
@@ -319,4 +320,27 @@ func (enc *Encoder) writeFloat64(f float64) error {
 	bin := math.Float64bits(f)
 	binary.LittleEndian.PutUint64(enc.buffer, bin)
 	return enc.write(enc.buffer)
+}
+
+// a string might be encoded as an integer, but only subset (aka uint32) of the number set
+// can be encoded and then decoded back.
+// e.g. the following strings can not be encoded as an integer:
+// "007", "-0", "-1", "+0", "+1", "0x11"
+func isEncodableInteger(s string) (int64, bool) {
+	if s == "" {
+		return 0, false
+	}
+	if s[0] == '0' && len(s) > 1 {
+		return 0, false
+	}
+	for _, r := range s {
+		if !unicode.IsDigit(r) {
+			return 0, false
+		}
+	}
+	intVal, err := strconv.ParseInt(s, 10, 32)
+	if err != nil {
+		return 0, false
+	}
+	return intVal, true
 }
