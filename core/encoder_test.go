@@ -3,6 +3,7 @@ package core
 import (
 	"bytes"
 	"github.com/hdt3213/rdb/model"
+	"math/rand"
 	"testing"
 	"time"
 )
@@ -18,11 +19,15 @@ func TestEncode(t *testing.T) {
 		TTL   uint64
 	}
 	strMap := map[string]*valTTLPair{
-		"a":            {Value: "a", TTL: uint64(time.Now().Add(time.Hour).Unix())},
-		"b":            {Value: "b", TTL: uint64(time.Now().Add(time.Minute).Unix())},
-		"c":            {Value: "c"},
-		"1":            {Value: "1"},
-		RandString(20): {Value: RandString(20)},
+		"a": {Value: "a", TTL: uint64(time.Now().Add(time.Hour).Unix())},
+		"b": {Value: "b", TTL: uint64(time.Now().Add(time.Minute).Unix())},
+		"c": {Value: "c"},
+		"1": {Value: "1"},
+	}
+	for i := 0; i < 1000; i++ {
+		strMap[RandString(rand.Intn(20))] = &valTTLPair{
+			Value: RandString(rand.Intn(50)),
+		}
 	}
 
 	buf := bytes.NewBuffer(nil)
