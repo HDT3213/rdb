@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/hdt3213/rdb/model"
 	"math"
+	"math/rand"
 	"strconv"
 	"testing"
 )
@@ -104,9 +105,11 @@ func TestZipListEncoding(t *testing.T) {
 		strconv.Itoa(math.MaxInt16),
 		strconv.Itoa(math.MinInt16),
 		strconv.Itoa(math.MaxInt32),
+		strconv.Itoa(math.MaxInt32) + "1",
 		strconv.Itoa(math.MinInt32),
 		strconv.Itoa(math.MinInt32) + "1",
 		strconv.Itoa(math.MaxInt64),
+		strconv.Itoa(math.MaxInt64) + "1",
 		strconv.Itoa(math.MinInt64),
 		strconv.Itoa(math.MinInt64) + "1",
 		RandString(60),
@@ -132,6 +135,40 @@ func TestZipListEncoding(t *testing.T) {
 		actualV := string(actual[i])
 		if expectV != actualV {
 			t.Errorf("illegal value at %d", i)
+		}
+	}
+}
+
+func TestRandomZipListEncoding(t *testing.T) {
+	buf := bytes.NewBuffer(nil)
+	enc := NewEncoder(buf).SetListZipListOpt(64, 64)
+	size := 32
+	round := 10000
+	list := make([]string, size)
+	for r := 0; r < round; r++ {
+		for i := 0; i < size; i++ {
+			list[i] = RandString(rand.Intn(50))
+		}
+		err := enc.writeZipList(list)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		dec := NewDecoder(buf)
+		actual, err := dec.readZipList()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		if len(list) != len(actual) {
+			t.Error("wrong result size")
+			return
+		}
+		for i, expectV := range list {
+			actualV := string(actual[i])
+			if expectV != actualV {
+				t.Errorf("illegal value at %d", i)
+			}
 		}
 	}
 }

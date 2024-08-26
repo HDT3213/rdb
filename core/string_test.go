@@ -3,6 +3,7 @@ package core
 import (
 	"bytes"
 	"math"
+	"math/rand"
 	"strconv"
 	"strings"
 	"testing"
@@ -57,9 +58,11 @@ func TestStringEncoding(t *testing.T) {
 		strconv.Itoa(math.MaxInt16),
 		strconv.Itoa(math.MinInt16),
 		strconv.Itoa(math.MaxInt32),
+		strconv.Itoa(math.MaxInt32) + "1",
 		strconv.Itoa(math.MinInt32),
 		strconv.Itoa(math.MinInt32) + "1",
 		strconv.Itoa(math.MaxInt64),
+		strconv.Itoa(math.MaxInt64) + "1",
 		strconv.Itoa(math.MinInt64),
 		strconv.Itoa(math.MinInt64) + "1",
 		RandString(20000),
@@ -80,6 +83,37 @@ func TestStringEncoding(t *testing.T) {
 		}
 		if string(actual) != expect {
 			t.Errorf("expect %s, actual %s", expect, string(actual))
+		}
+	}
+}
+
+func TestRandomStringEncoding(t *testing.T) {
+	buf := bytes.NewBuffer(nil)
+	enc := NewEncoder(buf)
+	size := 1000
+	round := 2000
+	strList := make([]string, size)
+	for r := 0; r < round; r++ {
+		for i := 0; i < size; i++ {
+			strList[i] = RandString(rand.Intn(50))
+		}
+		for _, str := range strList {
+			err := enc.writeString(str)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+		}
+		dec := NewDecoder(buf)
+		for _, expect := range strList {
+			actual, err := dec.readString()
+			if err != nil {
+				t.Error(err)
+				continue
+			}
+			if string(actual) != expect {
+				t.Errorf("expect %s, actual %s", expect, string(actual))
+			}
 		}
 	}
 }

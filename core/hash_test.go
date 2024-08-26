@@ -3,6 +3,7 @@ package core
 import (
 	"bytes"
 	"github.com/hdt3213/rdb/model"
+	"math/rand"
 	"testing"
 )
 
@@ -27,7 +28,7 @@ func TestHashEncoding(t *testing.T) {
 	}
 	m := make(map[string][]byte)
 	for i := 0; i < 1024; i++ {
-		m[RandString(64)] = []byte(RandString(128))
+		m[RandString(rand.Intn(32))] = []byte(RandString(rand.Intn(128)))
 	}
 	mapMap["large"] = m
 	buf := bytes.NewBuffer(nil)
