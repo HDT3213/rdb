@@ -60,6 +60,7 @@ Options:
                 supporting multi separators: -sep sep1 -sep sep2 
   -regex using regex expression filter keys
   -no-expired reserve expired keys
+  -concurrent The number of concurrent json converters. (CpuNum -1 by default, reserve a core for decoder)
 
 Examples:
 parameters between '[' and ']' is optional
@@ -104,6 +105,12 @@ The examples for json result:
     {"db":0,"key":"zset","expiration":"2022-02-18T06:15:29.18+08:00","size":57,"type":"zset","entries":[{"member":"zn4ejjo4ths63irg","score":1},{"member":"1ik4jifkg6olxf5n","score":2}]},
     {"db":0,"key":"set","expiration":"2022-02-18T06:15:29.18+08:00","size":39,"type":"set","members":["2hzm5rnmkmwb3zqd","tdje6bk22c6ddlrw"]}
 ]
+```
+
+You can use `-concurrent` to change the number of concurrent convertes. The default value is 4.
+
+```
+rdb -c json -o intset_16.json -concurrent 8 cases/intset_16.rdb
 ```
 
 <details>
@@ -542,12 +549,14 @@ func main() {
 
 # Benchmark
 
-Tested on MacBook Pro (16-inch, 2019) 2.6 GHz 6cores Intel Core i7, using  a 1.3 GB RDB file encoded with v9 format from Redis 5.0 in production environment.
+Tested on MacBook Air（M2，2022年）, using  a 1.3 GB RDB file encoded with v9 format from Redis 5.0 in production environment.
 
 |usage|elapsed|speed|
 |:-:|:-:|:-:|
-|ToJson|74.12s|17.96MB/s|
-|Memory|18.585s|71.62MB/s|
-|AOF|104.77s|12.76MB/s|
-|Top10|14.8s|89.95MB/s|
-|FlameGraph|21.83s|60.98MB/s|
+|ToJson|25s|53.24MB/s|
+|Memory|10s|133.12MB/s|
+|AOF|25s|53.24MB/s|
+|Top10|6s|221.87MB/s|
+|Prefix|25s|53.24MB/s|
+
+

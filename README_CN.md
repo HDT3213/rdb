@@ -47,6 +47,7 @@ Options:
                 supporting multi separators: -sep sep1 -sep sep2 
   -regex using regex expression filter keys
   -no-expired filter expired keys
+  -concurrent The number of concurrent json converters. (Cpu number by default)
 
 Examples:
 parameters between '[' and ']' is optional
@@ -89,6 +90,12 @@ rdb -c json -o intset_16.json cases/intset_16.rdb
     {"db":0,"key":"zset","expiration":"2022-02-18T06:15:29.18+08:00","size":57,"type":"zset","entries":[{"member":"zn4ejjo4ths63irg","score":1},{"member":"1ik4jifkg6olxf5n","score":2}]},
     {"db":0,"key":"set","expiration":"2022-02-18T06:15:29.18+08:00","size":39,"type":"set","members":["2hzm5rnmkmwb3zqd","tdje6bk22c6ddlrw"]}
 ]
+```
+
+`-concurrent` 选项可以修改转 JSON 的并发数，默认并发数为 CPU 数量 -1 (留一个核心给解析器)。
+
+```shell
+rdb -c json -o intset_16.json -concurrent 8 cases/intset_16.rdb
 ```
 
 <details>
@@ -530,12 +537,12 @@ func main() {
 
 # Benchmark
 
-在 MacBook Pro (16-inch, 2019) 2.6 GHz 六核 Intel Core i7 笔记本上，使用从生产环境的 Redis 5.0 上获得 1.3 GB 大小使用 v9 编码的 RDB 文件进行测试：
+在 MacBook Air（M2，2022年）笔记本上，使用从生产环境的 Redis 5.0 上获得 1.3 GB 大小使用 v9 编码的 RDB 文件进行测试：
 
 |usage|elapsed|speed|
 |:-:|:-:|:-:|
-|ToJson|74.12s|17.96MB/s|
-|Memory|18.585s|71.62MB/s|
-|AOF|104.77s|12.76MB/s|
-|Top10|14.8s|89.95MB/s|
-|FlameGraph|21.83s|60.98MB/s|
+|ToJson|25s|53.24MB/s|
+|Memory|10s|133.12MB/s|
+|AOF|25s|53.24MB/s|
+|Top10|6s|221.87MB/s|
+|Prefix|25s|53.24MB/s|

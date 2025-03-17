@@ -105,7 +105,7 @@ func TestToJson(t *testing.T) {
 		srcRdb := filepath.Join("../cases", filename+".rdb")
 		actualJSON := filepath.Join("tmp", filename+".json")
 		expectJSON := filepath.Join("../cases", filename+".json")
-		err = ToJsons(srcRdb, actualJSON)
+		err = ToJsons(srcRdb, actualJSON, WithConcurrent(1))
 		if err != nil {
 			t.Errorf("error occurs during parse %s, err: %v", filename, err)
 			continue

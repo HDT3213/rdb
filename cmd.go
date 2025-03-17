@@ -20,6 +20,7 @@ Options:
 		supporting multi separators: -sep sep1 -sep sep2 
   -regex using regex expression filter keys
   -no-expired filter expired keys
+  -concurrent The number of concurrent json converters. 4 by default.
 
 Examples:
 parameters between '[' and ']' is optional
@@ -58,12 +59,14 @@ func main() {
 	var regexExpr string
 	var noExpired bool
 	var maxDepth int
+	var concurrent int
 	var err error
 	flagSet.StringVar(&cmd, "c", "", "command for rdb: json")
 	flagSet.StringVar(&output, "o", "", "output file path")
 	flagSet.IntVar(&n, "n", 0, "")
 	flagSet.IntVar(&maxDepth, "max-depth", 0, "max depth of prefix tree")
 	flagSet.IntVar(&port, "port", 0, "listen port for web")
+	flagSet.IntVar(&concurrent, "concurrent", 0, "concurrent number for json converter")
 	flagSet.Var(&seps, "sep", "separator for flame graph")
 	flagSet.StringVar(&regexExpr, "regex", "", "regex expression")
 	flagSet.BoolVar(&noExpired, "no-expired", false, "filter expired keys")
@@ -85,6 +88,9 @@ func main() {
 	}
 	if noExpired {
 		options = append(options, helper.WithNoExpiredOption())
+	}
+	if concurrent != 0 {
+		options = append(options, helper.WithConcurrent(concurrent))
 	}
 
 	var outputFile *os.File
