@@ -3,9 +3,10 @@ package core
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/hdt3213/rdb/crc64jones"
 	"hash"
 	"io"
+
+	"github.com/hdt3213/rdb/crc64jones"
 )
 
 // Encoder is used to generate RDB file
@@ -233,7 +234,6 @@ func (enc *Encoder) WriteEnd() error {
 	if err != nil {
 		return fmt.Errorf("write crc sum failed: %v", err)
 	}
-	enc.writer.Write([]byte{0x0a}) // write LF
 	enc.state = writtenEndState
 	return nil
 }
