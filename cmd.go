@@ -19,7 +19,13 @@ Options:
   -sep separator for flamegraph, rdb will separate key by it, default value is ":". 
 		supporting multi separators: -sep sep1 -sep sep2 
   -regex using regex expression filter keys
-  -no-expired filter expired keys
+  -expire filter keys by its expiration time
+		1. '1751731200~1751817600' get keys with expiration time in range [1751731200, 1751817600]
+		2. '1751731200~now' 'now~1751731200' magic variable 'now' represents the current timestamp
+		3. '1751731200~inf' 'now~inf' magic variable 'inf' represents the Infinity
+		4. 'noexpire' get keys without expiration time
+		5. 'anyexpire' get all keys with expiration time
+  -no-expired filter expired keys(deprecated, please use 'expire' option)
   -concurrent The number of concurrent json converters. 4 by default.
 
 Examples:
@@ -58,6 +64,7 @@ func main() {
 	var seps separators
 	var regexExpr string
 	var noExpired bool
+	var expirationExpr string
 	var maxDepth int
 	var concurrent int
 	var err error
@@ -69,7 +76,8 @@ func main() {
 	flagSet.IntVar(&concurrent, "concurrent", 0, "concurrent number for json converter")
 	flagSet.Var(&seps, "sep", "separator for flame graph")
 	flagSet.StringVar(&regexExpr, "regex", "", "regex expression")
-	flagSet.BoolVar(&noExpired, "no-expired", false, "filter expired keys")
+	flagSet.StringVar(&expirationExpr, "expire", "", "expiration filter expression")
+	flagSet.BoolVar(&noExpired, "no-expired", false, "filter expired keys(deprecated, please use expire)")
 	_ = flagSet.Parse(os.Args[1:]) // ExitOnError
 	src := flagSet.Arg(0)
 
@@ -91,6 +99,9 @@ func main() {
 	}
 	if concurrent != 0 {
 		options = append(options, helper.WithConcurrent(concurrent))
+	}
+	if expirationExpr != "" {
+		options = append(options, helper.WithExpirationOption(expirationExpr))
 	}
 
 	var outputFile *os.File

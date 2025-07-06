@@ -46,6 +46,12 @@ Options:
   -sep separator for flamegraph, rdb will separate key by it, default value is ":". 
                 supporting multi separators: -sep sep1 -sep sep2 
   -regex using regex expression filter keys
+  -expire filter keys by its expiration time
+		1. '>1751731200' '>now' get keys with expiration time greater than given time
+		2. '<1751731200' '<now' get keys with expiration time less than given time
+		3. '1751731200~1751817600' '1751731200~now' get keys with expiration time in range
+		4. 'noexpire' get keys without expiration time
+		5. 'anyexpire' get all keys with expiration time
   -no-expired filter expired keys
   -concurrent The number of concurrent json converters. (Cpu number by default)
 
@@ -390,12 +396,55 @@ aaaaaaa
 
 # 正则过滤器
 
-本工具支持使用正则表达式过滤自己关心的键值对：
+支持使用正则表达式过滤自己关心的键值对：
 
 示例:
 
 ```bash
 rdb -c json -o regex.json -regex '^l.*' cases/memory.rdb
+```
+
+# Expiration 过滤器
+
+`-expire` 参数可以配置根据过期时间过滤.
+
+过期时间在 2025-07-06 00:00:00 与 2025-07-07 00:00:00之间的 key:
+```bash
+# toTimestamp(2025-07-06 00:00:00) == 1751731200
+# toTimestamp(2025-07-07 00:00:00) == 1751817600
+rdb -c json -o dump.json -expire 1751731200~1751817600 cases/expiration.rdb
+```
+
+```bash
+# 过期时间早于 2025-07-07 00:00:00 的 key
+rdb -c json -o dump.json -expire 0~1751817600 cases/expiration.rdb
+```
+
+魔法变量 `inf` 表示无穷大：
+```bash
+rdb -c json -o dump.json -expire 1751731200~inf cases/expiration.rdb
+```
+
+魔法变量 `now` 表示当前时间：
+
+```bash
+# 过期时间早于现在的 key
+rdb -c json -o dump.json -expire 0~now cases/expiration.rdb
+```
+
+```bash
+# 过期时间晚于现在的 key
+rdb -c json -o dump.json -expire now~inf cases/expiration.rdb
+```
+
+所有设置了过期时间的key:
+```bash
+rdb -c json -o dump.json -expire anyexpire cases/expiration.rdb
+```
+
+所有未设置过期时间的key:
+```bash
+rdb -c json -o dump.json -expire noexpire cases/expiration.rdb
 ```
 
 # 自定义用途

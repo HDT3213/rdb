@@ -2,11 +2,14 @@ package helper
 
 import (
 	"bufio"
-	"github.com/bytedance/sonic"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/bytedance/sonic"
+	"github.com/hdt3213/rdb/model"
+	"github.com/hdt3213/rdb/parser"
 )
 
 func compareFileByLine(t *testing.T, fn1, fn2 string) (bool, error) {
@@ -235,5 +238,80 @@ func TestToAofWithRegex(t *testing.T) {
 	err = ToAOF(srcRdb, errFile, WithRegexOption(`(i)\1`))
 	if err == nil {
 		t.Error("expect error")
+	}
+}
+
+func TestExpiration(t *testing.T) {
+	newDecoder := func(expr string) decoder {
+		rdbFile, err := os.Open("../cases/expiration.rdb")
+		if err != nil {
+			panic(err)
+		}
+		var dec decoder = parser.NewDecoder(rdbFile)
+		dec, err = wrapDecoder(dec, WithExpirationOption(expr))
+		if err != nil {
+			panic(err)
+		}
+		return dec
+	}
+
+	dec := newDecoder("0~1751817600")
+	count := 0
+	dec.Parse(func(object model.RedisObject) bool {
+		count++
+		return true
+	})
+	if count != 1 {
+		t.Errorf("expect 1 got %d", count)
+	}
+
+	dec = newDecoder("1751817600~inf")
+	count = 0
+	dec.Parse(func(object model.RedisObject) bool {
+		count++
+		return true
+	})
+	if count != 0 {
+		t.Errorf("expect 0 got %d", count)
+	}
+
+	dec = newDecoder("1751731200~1751817600")
+	count = 0
+	dec.Parse(func(object model.RedisObject) bool {
+		count++
+		return true
+	})
+	if count != 1 {
+		t.Errorf("expect 1 got %d", count)
+	}
+
+	dec = newDecoder("1751817600~now")
+	count = 0
+	dec.Parse(func(object model.RedisObject) bool {
+		count++
+		return true
+	})
+	if count != 0 {
+		t.Errorf("expect 0 got %d", count)
+	}
+
+	dec = newDecoder("noexpire")
+	count = 0
+	dec.Parse(func(object model.RedisObject) bool {
+		count++
+		return true
+	})
+	if count != 1 {
+		t.Errorf("expect 1 got %d", count)
+	}
+
+	dec = newDecoder("anyexpire")
+	count = 0
+	dec.Parse(func(object model.RedisObject) bool {
+		count++
+		return true
+	})
+	if count != 1 {
+		t.Errorf("expect 1 got %d", count)
 	}
 }

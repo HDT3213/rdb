@@ -59,6 +59,12 @@ Options:
   -sep separator for flamegraph, rdb will separate key by it, default value is ":". 
                 supporting multi separators: -sep sep1 -sep sep2 
   -regex using regex expression filter keys
+  -expire filter keys by its expiration time
+		1. '>1751731200' '>now' get keys with expiration time greater than given time
+		2. '<1751731200' '<now' get keys with expiration time less than given time
+		3. '1751731200~1751817600' '1751731200~now' get keys with expiration time in range
+		4. 'noexpire' get keys without expiration time
+		5. 'anyexpire' get all keys with expiration time
   -no-expired reserve expired keys
   -concurrent The number of concurrent json converters. (CpuNum -1 by default, reserve a core for decoder)
 
@@ -409,6 +415,49 @@ RDB tool supports using regex expression to filter keys.
 Example:
 ```rdb
 rdb -c json -o regex.json -regex '^l.*' cases/memory.rdb
+```
+
+# Expiration Filter
+
+The `-expire` parameter can be configured to filter based on the expiration time.
+
+Keys with expiration times between 2025-07-06 00:00:00 and 2025-07-07 00:00:00:
+```bash
+# toTimestamp(2025-07-06 00:00:00) == 1751731200
+# toTimestamp(2025-07-07 00:00:00) == 1751817600
+rdb -c json -o dump.json -expire 1751731200~1751817600 cases/expiration.rdb
+```
+
+```bash
+# Keys with expiration times earlier than 2025-07-07 00:00:00
+rdb -c json -o dump.json -expire 0~1751817600 cases/expiration.rdb
+```
+
+The magic variable `inf` represents infinity:
+```bash
+rdb -c json -o dump.json -expire 1751731200~inf cases/expiration.rdb
+```
+
+The magic variable `now` represents the current time:
+
+```bash
+# Keys with expiration times earlier than now
+rdb -c json -o dump.json -expire 0~now cases/expiration.rdb
+```
+
+```bash
+# Keys with expiration times later than now
+rdb -c json -o dump.json -expire now~inf cases/expiration.rdb
+```
+
+All keys with expiration times set:
+```bash
+rdb -c json -o dump.json -expire anyexpire cases/expiration.rdb
+```
+
+All keys without expiration times set:
+```bash
+rdb -c json -o dump.json -expire noexpire cases/expiration.rdb
 ```
 
 # Customize data usage
