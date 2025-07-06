@@ -52,7 +52,7 @@ Options:
 		3. '1751731200~1751817600' '1751731200~now' get keys with expiration time in range
 		4. 'noexpire' get keys without expiration time
 		5. 'anyexpire' get all keys with expiration time
-  -no-expired filter expired keys
+  -no-expired filter expired keys(deprecated, please use 'expire' option)
   -concurrent The number of concurrent json converters. (Cpu number by default)
 
 Examples:
