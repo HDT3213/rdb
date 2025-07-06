@@ -134,6 +134,12 @@ func TestToJson(t *testing.T) {
 }
 
 func TestToJsonWithRegex(t *testing.T) {
+	// SortMapKeys will cause performance losses, only enabled during test
+	jsonEncoder = sonic.ConfigStd
+	// use same time zone to ensure RedisObject.Expiration has same json value
+	var cstZone = time.FixedZone("CST", 8*3600)
+	time.Local = cstZone
+
 	err := os.MkdirAll("tmp", os.ModePerm)
 	if err != nil {
 		return
