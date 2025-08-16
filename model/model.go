@@ -14,6 +14,8 @@ const (
 	SetType = "set"
 	// HashType is redis hash
 	HashType = "hash"
+	// HashType is redis hash with field expiration
+	HashTypeEx = "hashex"
 	// ZSetType is redis sorted set
 	ZSetType = "zset"
 	// AuxType is redis metadata key-value pair
@@ -35,6 +37,8 @@ const (
 	ZSetEncoding = "zset"
 	// HashEncoding is formed by a length encoding and some string
 	HashEncoding = "hash"
+	// HashExEncoding is hash with field expiration
+	HashExEncoding = "hashex"
 	// ZSet2Encoding is zset version2 which stores doubles in binary format
 	ZSet2Encoding = "zset2"
 	// ZipMapEncoding has been deprecated
@@ -47,6 +51,8 @@ const (
 	QuickListEncoding = "quicklist"
 	// ListPackEncoding is a new replacement for ziplist
 	ListPackEncoding = "listpack"
+	// ListPackExEncoding is listpack with field expiration
+	ListPackExEncoding = "listpackex"
 	// QuickList2Encoding is a list of listpack
 	QuickList2Encoding = "quicklist2"
 )
@@ -193,6 +199,46 @@ func (o *HashObject) MarshalJSON() ([]byte, error) {
 	o2 := struct {
 		*BaseObject
 		Hash map[string]string `json:"hash"`
+	}{
+		BaseObject: o.BaseObject,
+		Hash:       m,
+	}
+	return json.Marshal(o2)
+}
+
+// HashObjectEx stores a hash object with field expiration
+type HashObjectExField struct {
+	Value  []byte `json:"value"`
+	Expire int64  `json:"expire"`
+}
+type HashObjectEx struct {
+	*BaseObject
+	Hash map[string]HashObjectExField `json:"hash"`
+}
+
+// GetType returns redis object type
+func (o *HashObjectEx) GetType() string {
+	return HashTypeEx
+}
+
+// GetElemCount returns number of elements in list/set/hash/zset
+func (o *HashObjectEx) GetElemCount() int {
+	return len(o.Hash)
+}
+
+// MarshalJSON marshal []byte as string
+func (o *HashObjectEx) MarshalJSON() ([]byte, error) {
+	type hfe struct {
+		Value  string `json:"value"`
+		Expire int64  `json:"expire"`
+	}
+	m := make(map[string]hfe)
+	for k, v := range o.Hash {
+		m[k] = hfe{Value: string(v.Value), Expire: v.Expire}
+	}
+	o2 := struct {
+		*BaseObject
+		Hash map[string]hfe `json:"hash"`
 	}{
 		BaseObject: o.BaseObject,
 		Hash:       m,

@@ -3,6 +3,8 @@ package core
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
+
 	"github.com/hdt3213/rdb/model"
 )
 
@@ -26,6 +28,58 @@ func (dec *Decoder) readHashMap() (map[string][]byte, error) {
 			return nil, err
 		}
 		m[unsafeBytes2Str(field)] = value
+	}
+	return m, nil
+}
+
+func (dec *Decoder) readHashMapEx(rc bool) (map[string]model.HashObjectExField, error) {
+	var minExpire int64 = EB_EXPIRE_TIME_INVALID
+	var expire int64
+	if !rc {
+		// Hash with HFEs. min TTL at start (7.4+), 7.4RC not included
+		min, err := dec.readInt64()
+		if err != nil {
+			return nil, err
+		}
+		if min > EB_EXPIRE_TIME_INVALID {
+			return nil, fmt.Errorf("hash read invalid minExpire value: %d", min)
+		}
+		minExpire = min
+	}
+	size, _, err := dec.readLength()
+	if err != nil {
+		return nil, err
+	} else if size == 0 {
+		return nil, fmt.Errorf("hash read empty key")
+	}
+	m := make(map[string]model.HashObjectExField)
+	for i := 0; i < int(size); i++ {
+		ttl, _, err := dec.readLength()
+		if err != nil {
+			return nil, err
+		}
+		if rc {
+			// Value is absolute for 7.4RC
+			expire = int64(ttl)
+		} else if ttl == 0 {
+			// 0 Indicates no TTL. This is common case so we keep it small.
+			expire = 0
+		} else {
+			// TTL is relative to minExpire (with +1 to avoid 0 that already taken)
+			expire = int64(ttl) + minExpire - 1
+		}
+		if expire > EB_EXPIRE_TIME_MAX {
+			return nil, fmt.Errorf("invalid expireAt time: %d", expire)
+		}
+		field, err := dec.readString()
+		if err != nil {
+			return nil, err
+		}
+		value, err := dec.readString()
+		if err != nil {
+			return nil, err
+		}
+		m[unsafeBytes2Str(field)] = model.HashObjectExField{Expire: expire, Value: value}
 	}
 	return m, nil
 }
@@ -179,6 +233,47 @@ func (dec *Decoder) readListPackHash() (map[string][]byte, *model.ListpackDetail
 	return m, detail, nil
 }
 
+func (dec *Decoder) readListPackHashEx(rc bool) (map[string]model.HashObjectExField, *model.ListpackDetail, error) {
+	if !rc {
+		// This value was serialized for future use-case of streaming the object directly to FLASH (while keeping in mem its next expiration time)
+		_, err := dec.readInt64()
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+	buf, err := dec.readString()
+	if err != nil {
+		return nil, nil, err
+	}
+	cursor := 0
+	size := readListPackLength(buf, &cursor)
+	if size == 0 {
+		return nil, nil, fmt.Errorf("hash listpack read empty key")
+	} else if size%3 != 0 {
+		return nil, nil, fmt.Errorf("hash listpack read invalid size %d", size)
+	}
+	m := make(map[string]model.HashObjectExField)
+	for i := 0; i < size; i += 3 {
+		key, err := dec.readListPackEntryAsString(buf, &cursor)
+		if err != nil {
+			return nil, nil, err
+		}
+		val, err := dec.readListPackEntryAsString(buf, &cursor)
+		if err != nil {
+			return nil, nil, err
+		}
+		expire, err := dec.readListPackEntryAsInt(buf, &cursor)
+		if err != nil {
+			return nil, nil, err
+		}
+		m[unsafeBytes2Str(key)] = model.HashObjectExField{Expire: expire, Value: val}
+	}
+	detail := &model.ListpackDetail{
+		RawStringSize: len(buf),
+	}
+	return m, detail, nil
+}
+
 func (enc *Encoder) WriteHashMapObject(key string, hash map[string][]byte, options ...interface{}) error {
 	err := enc.beforeWriteObject(options...)
 	if err != nil {
@@ -193,6 +288,20 @@ func (enc *Encoder) WriteHashMapObject(key string, hash map[string][]byte, optio
 		if err != nil {
 			return err
 		}
+	}
+	enc.state = writtenObjectState
+	return nil
+}
+
+func (enc *Encoder) WriteHashMapObjectEx(key string, hash map[string]model.HashObjectExField, options ...interface{}) error {
+	err := enc.beforeWriteObject(options...)
+	if err != nil {
+		return err
+	}
+
+	err = enc.writeHashEncodingEx(key, hash, options...)
+	if err != nil {
+		return err
 	}
 	enc.state = writtenObjectState
 	return nil
@@ -217,6 +326,49 @@ func (enc *Encoder) writeHashEncoding(key string, hash map[string][]byte, option
 			return err
 		}
 		err = enc.writeString(unsafeBytes2Str(value))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (enc *Encoder) writeHashEncodingEx(key string, hash map[string]model.HashObjectExField, options ...interface{}) error {
+	err := enc.write([]byte{typeHashWithHfe})
+	if err != nil {
+		return err
+	}
+	err = enc.writeString(key)
+	if err != nil {
+		return err
+	}
+	// Hash with HFEs. min TTL at start (7.4+), 7.4RC not included
+	var minExpire int64 = 0
+	for _, val := range hash {
+		if val.Expire > minExpire {
+			minExpire = val.Expire
+		}
+	}
+	minExpireBytes := make([]byte, 8)
+	binary.LittleEndian.PutUint64(minExpireBytes[:], uint64(minExpire))
+	err = enc.write(minExpireBytes)
+	if err != nil {
+		return err
+	}
+	err = enc.writeLength(uint64(len(hash)))
+	if err != nil {
+		return err
+	}
+	for field, value := range hash {
+		err = enc.writeLength(uint64(value.Expire + 1 - minExpire))
+		if err != nil {
+			return err
+		}
+		err = enc.writeString(field)
+		if err != nil {
+			return err
+		}
+		err = enc.writeString(unsafeBytes2Str(value.Value))
 		if err != nil {
 			return err
 		}
