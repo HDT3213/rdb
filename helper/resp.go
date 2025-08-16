@@ -97,6 +97,52 @@ func hashToCmd(obj *model.HashObject, useLexOrder bool) CmdLine {
 	return cmdLine
 }
 
+var hPExpireAtCmd = []byte("HPEXPIREAT") // redis 7.4.0+
+
+func hashExToCmd(obj *model.HashObjectEx) [][][]byte {
+	useLexOrder := true // TODO
+	cmdLine := make([][]byte, 2+obj.GetElemCount()*2)
+	cmdLine[0] = hMSetCmd
+	cmdLine[1] = []byte(obj.GetKey())
+	i := 0
+	if useLexOrder {
+		entries := make([][2][]byte, 0, 2*len(obj.Hash))
+		for field, val := range obj.Hash {
+			entries = append(entries, [2][]byte{
+				[]byte(field), val.Value,
+			})
+		}
+		sort.Slice(entries, func(i, j int) bool {
+			return string(entries[i][0]) < string(entries[j][0])
+		})
+		for _, entry := range entries {
+			cmdLine[2+i*2] = entry[0]
+			cmdLine[3+i*2] = entry[1]
+			i++
+		}
+	} else {
+		for field, val := range obj.Hash {
+			cmdLine[2+i*2] = []byte(field)
+			cmdLine[3+i*2] = val.Value
+			i++
+		}
+	}
+
+	cmdLines := make([][][]byte, 0)
+	cmdLines = append(cmdLines, cmdLine)
+	pexpCmdLine := make([][]byte, 6)
+	pexpCmdLine[0] = hPExpireAtCmd
+	pexpCmdLine[1] = []byte(obj.Key)
+	pexpCmdLine[3] = []byte("FIELDS")
+	pexpCmdLine[4] = []byte("1")
+	for field, val := range obj.Hash {
+		pexpCmdLine[2] = val.Value
+		pexpCmdLine[5] = []byte(field)
+		cmdLines = append(cmdLines, pexpCmdLine)
+	}
+	return cmdLines
+}
+
 var zAddCmd = []byte("ZADD")
 
 func zSetToCmd(obj *model.ZSetObject) CmdLine {
@@ -185,6 +231,9 @@ func ObjectToCmd(obj model.RedisObject, opts ...interface{}) []CmdLine {
 	case model.HashType:
 		hashObj := obj.(*model.HashObject)
 		cmdLines = append(cmdLines, hashToCmd(hashObj, useLexOrder))
+	case model.HashTypeEx:
+		hashExObj := obj.(*model.HashObjectEx)
+		cmdLines = append(cmdLines, hashExToCmd(hashExObj)...)
 	case model.SetType:
 		setObj := obj.(*model.SetObject)
 		cmdLines = append(cmdLines, setToCmd(setObj))

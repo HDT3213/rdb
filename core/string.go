@@ -4,10 +4,11 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/hdt3213/rdb/lzf"
 	"math"
 	"strconv"
 	"unicode"
+
+	"github.com/hdt3213/rdb/lzf"
 )
 
 const (
@@ -119,11 +120,21 @@ func (dec *Decoder) readInt16() (int16, error) {
 func (dec *Decoder) readInt32() (int32, error) {
 	err := dec.readFull(dec.buffer[:4])
 	if err != nil {
-		return 0, fmt.Errorf("read uint16 error: %v", err)
+		return 0, fmt.Errorf("read uint32 error: %v", err)
 	}
 
 	i := binary.LittleEndian.Uint32(dec.buffer[:4])
 	return int32(i), nil
+}
+
+func (dec *Decoder) readInt64() (int64, error) {
+	err := dec.readFull(dec.buffer[:8])
+	if err != nil {
+		return 0, fmt.Errorf("read uint64 error: %v", err)
+	}
+
+	i := binary.LittleEndian.Uint64(dec.buffer[:8])
+	return int64(i), nil
 }
 
 func (dec *Decoder) readLiteralFloat() (float64, error) {
