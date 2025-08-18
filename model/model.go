@@ -35,6 +35,8 @@ const (
 	ZSetEncoding = "zset"
 	// HashEncoding is formed by a length encoding and some string
 	HashEncoding = "hash"
+	// HashExEncoding is hash with field expiration
+	HashExEncoding = "hashex"
 	// ZSet2Encoding is zset version2 which stores doubles in binary format
 	ZSet2Encoding = "zset2"
 	// ZipMapEncoding has been deprecated
@@ -47,6 +49,8 @@ const (
 	QuickListEncoding = "quicklist"
 	// ListPackEncoding is a new replacement for ziplist
 	ListPackEncoding = "listpack"
+	// ListPackExEncoding is listpack with field expiration
+	ListPackExEncoding = "listpackex"
 	// QuickList2Encoding is a list of listpack
 	QuickList2Encoding = "quicklist2"
 )
@@ -171,7 +175,8 @@ func (o *ListObject) MarshalJSON() ([]byte, error) {
 // HashObject stores a hash object
 type HashObject struct {
 	*BaseObject
-	Hash map[string][]byte
+	Hash             map[string][]byte
+	FieldExpirations map[string]int64
 }
 
 // GetType returns redis object type
@@ -190,14 +195,28 @@ func (o *HashObject) MarshalJSON() ([]byte, error) {
 	for k, v := range o.Hash {
 		m[k] = string(v)
 	}
-	o2 := struct {
-		*BaseObject
-		Hash map[string]string `json:"hash"`
-	}{
-		BaseObject: o.BaseObject,
-		Hash:       m,
+	if len(o.FieldExpirations) == len(o.Hash) {
+		// hash/listpack with HFE
+		o2 := struct {
+			*BaseObject
+			Hash             map[string]string `json:"hash"`
+			FieldExpirations map[string]int64  `json:"expire"`
+		}{
+			BaseObject:       o.BaseObject,
+			Hash:             m,
+			FieldExpirations: o.FieldExpirations,
+		}
+		return json.Marshal(o2)
+	} else {
+		o2 := struct {
+			*BaseObject
+			Hash map[string]string `json:"hash"`
+		}{
+			BaseObject: o.BaseObject,
+			Hash:       m,
+		}
+		return json.Marshal(o2)
 	}
-	return json.Marshal(o2)
 }
 
 // SetObject stores a set object

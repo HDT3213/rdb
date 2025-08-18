@@ -2,6 +2,7 @@ package helper
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"sort"
 	"strconv"
@@ -66,8 +67,10 @@ func setToCmd(obj *model.SetObject) CmdLine {
 }
 
 var hMSetCmd = []byte("HMSET")
+var hPExpireAtCmd = []byte("HPEXPIREAT") // redis 7.4.0+
+var hPersistCmd = []byte("HPERSIST")     // redis 7.4.0+
 
-func hashToCmd(obj *model.HashObject, useLexOrder bool) CmdLine {
+func hashToCmd(obj *model.HashObject, useLexOrder bool) []CmdLine {
 	cmdLine := make([][]byte, 2+obj.GetElemCount()*2)
 	cmdLine[0] = hMSetCmd
 	cmdLine[1] = []byte(obj.GetKey())
@@ -94,7 +97,34 @@ func hashToCmd(obj *model.HashObject, useLexOrder bool) CmdLine {
 			i++
 		}
 	}
-	return cmdLine
+
+	cmds := []CmdLine{cmdLine}
+	if len(obj.FieldExpirations) == len(obj.Hash) {
+		for field, expire := range obj.FieldExpirations {
+			if expire == 0 {
+				hpexp := make([][]byte, 5)
+				// HPEXPIRE key seconds FIELDS num FIELD...
+				hpexp[0] = hPersistCmd
+				hpexp[1] = []byte(obj.Key)
+				hpexp[2] = []byte("FIELDS")
+				hpexp[3] = []byte("1")
+				hpexp[4] = []byte(field)
+				cmds = append(cmds, hpexp)
+			} else {
+				hpexp := make([][]byte, 6)
+				// HPEXPIRE key seconds FIELDS num FIELD...
+				hpexp[0] = hPExpireAtCmd
+				hpexp[1] = []byte(obj.Key)
+				hpexp[2] = []byte(fmt.Sprintf("%d", expire))
+				hpexp[3] = []byte("FIELDS")
+				hpexp[4] = []byte("1")
+				hpexp[5] = []byte(field)
+				cmds = append(cmds, hpexp)
+			}
+		}
+	}
+
+	return cmds
 }
 
 var zAddCmd = []byte("ZADD")
@@ -184,7 +214,7 @@ func ObjectToCmd(obj model.RedisObject, opts ...interface{}) []CmdLine {
 		cmdLines = append(cmdLines, listToCmd(listObj))
 	case model.HashType:
 		hashObj := obj.(*model.HashObject)
-		cmdLines = append(cmdLines, hashToCmd(hashObj, useLexOrder))
+		cmdLines = append(cmdLines, hashToCmd(hashObj, useLexOrder)...)
 	case model.SetType:
 		setObj := obj.(*model.SetObject)
 		cmdLines = append(cmdLines, setToCmd(setObj))

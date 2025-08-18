@@ -7,11 +7,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/hdt3213/rdb/memprofiler"
-	"github.com/hdt3213/rdb/model"
 	"io"
 	"strconv"
 	"time"
+
+	"github.com/hdt3213/rdb/memprofiler"
+	"github.com/hdt3213/rdb/model"
 )
 
 // Decoder is an instance of rdb parsing process
@@ -87,27 +88,41 @@ const (
 	typeStreamListPacks2
 	typeSetListPack
 	typeStreamListPacks3
+	typeHashWithHfeRc         // rdb 12 (only redis 7.4 rc)
+	typeHashListPackWithHfeRc // rdb 12 (only redis 7.4 rc)
+	typeHashWithHfe           // since rdb 12 (redis 7.4)
+	typeHashListPackWithHfe   // since rdb 12 (redis 7.4)
+)
+
+const (
+	EB_EXPIRE_TIME_MAX     int64 = 0x0000FFFFFFFFFFFF
+	EB_EXPIRE_TIME_INVALID int64 = EB_EXPIRE_TIME_MAX + 1
+	HFE_MAX_ABS_TIME_MSEC  int64 = EB_EXPIRE_TIME_MAX >> 2
 )
 
 var encodingMap = map[int]string{
-	typeString:           model.StringEncoding,
-	typeList:             model.ListEncoding,
-	typeSet:              model.SetEncoding,
-	typeZset:             model.ZSetEncoding,
-	typeHash:             model.HashEncoding,
-	typeZset2:            model.ZSet2Encoding,
-	typeHashZipMap:       model.ZipMapEncoding,
-	typeListZipList:      model.ZipListEncoding,
-	typeSetIntSet:        model.IntSetEncoding,
-	typeZsetZipList:      model.ZipListEncoding,
-	typeHashZipList:      model.ZipListEncoding,
-	typeListQuickList:    model.QuickListEncoding,
-	typeStreamListPacks:  model.ListPackEncoding,
-	typeStreamListPacks2: model.ListPackEncoding,
-	typeHashListPack:     model.ListPackEncoding,
-	typeZsetListPack:     model.ListPackEncoding,
-	typeListQuickList2:   model.QuickList2Encoding,
-	typeSetListPack:      model.ListPackEncoding,
+	typeString:                model.StringEncoding,
+	typeList:                  model.ListEncoding,
+	typeSet:                   model.SetEncoding,
+	typeZset:                  model.ZSetEncoding,
+	typeHash:                  model.HashEncoding,
+	typeZset2:                 model.ZSet2Encoding,
+	typeHashZipMap:            model.ZipMapEncoding,
+	typeListZipList:           model.ZipListEncoding,
+	typeSetIntSet:             model.IntSetEncoding,
+	typeZsetZipList:           model.ZipListEncoding,
+	typeHashZipList:           model.ZipListEncoding,
+	typeListQuickList:         model.QuickListEncoding,
+	typeStreamListPacks:       model.ListPackEncoding,
+	typeStreamListPacks2:      model.ListPackEncoding,
+	typeHashListPack:          model.ListPackEncoding,
+	typeZsetListPack:          model.ListPackEncoding,
+	typeListQuickList2:        model.QuickList2Encoding,
+	typeSetListPack:           model.ListPackEncoding,
+	typeHashWithHfeRc:         model.HashExEncoding,
+	typeHashListPackWithHfeRc: model.ListPackExEncoding,
+	typeHashWithHfe:           model.HashExEncoding,
+	typeHashListPackWithHfe:   model.ListPackExEncoding,
 }
 
 // checkHeader checks whether input has valid RDB file header
@@ -310,6 +325,27 @@ func (dec *Decoder) readObject(flag byte, base *model.BaseObject) (model.RedisOb
 		return &model.SetObject{
 			BaseObject: base,
 			Members:    set,
+		}, nil
+	case typeHashWithHfe, typeHashWithHfeRc:
+		hash, expire, err := dec.readHashMapEx(func() bool { return flag == typeHashWithHfeRc }())
+		if err != nil {
+			return nil, err
+		}
+		return &model.HashObject{
+			BaseObject:       base,
+			Hash:             hash,
+			FieldExpirations: expire,
+		}, nil
+	case typeHashListPackWithHfe, typeHashListPackWithHfeRc:
+		m, e, extra, err := dec.readListPackHashEx(func() bool { return flag == typeHashListPackWithHfeRc }())
+		if err != nil {
+			return nil, err
+		}
+		base.Extra = extra
+		return &model.HashObject{
+			BaseObject:       base,
+			Hash:             m,
+			FieldExpirations: e,
 		}, nil
 	}
 	return nil, fmt.Errorf("unknown type flag: %b", flag)
