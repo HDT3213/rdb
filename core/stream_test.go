@@ -92,10 +92,6 @@ func TestWriteStreamObject(t *testing.T) {
 }
 
 func TestWriteStreamObjectWithEntries(t *testing.T) {
-	// This test demonstrates that WriteStreamObject can encode basic stream structure
-	// Note: Complex listpack encoding for stream entries needs further refinement
-	t.Skip("Complex listpack encoding for stream entries needs further refinement")
-
 	// Create a test stream object with one entry
 	stream := &model.StreamObject{
 		BaseObject: &model.BaseObject{
