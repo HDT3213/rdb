@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/hdt3213/rdb/encoder"
-	"github.com/hdt3213/rdb/model"
 	"os"
 	"time"
+
+	"github.com/hdt3213/rdb/encoder"
+	"github.com/hdt3213/rdb/model"
 )
 
 func main() {
@@ -65,14 +66,31 @@ func main() {
 	}
 	err = enc.WriteZSetObject("list", []*model.ZSetEntry{
 		{
-			Score: 1.234,
+			Score:  1.234,
 			Member: "a",
 		},
 		{
-			Score: 2.71828,
+			Score:  2.71828,
 			Member: "b",
 		},
 	})
+	if err != nil {
+		panic(err)
+	}
+	stream := &model.StreamObject{
+		BaseObject: &model.BaseObject{
+			Key: "mystream",
+		},
+		Version: 1,
+		Length:  0, // Empty stream
+		LastId: &model.StreamId{
+			Ms:       0,
+			Sequence: 0,
+		},
+		Entries: []*model.StreamEntry{}, // Empty entries
+		Groups:  []*model.StreamGroup{}, // Empty groups
+	}
+	err = encoder.WriteStreamObject("mystream", stream)
 	if err != nil {
 		panic(err)
 	}
