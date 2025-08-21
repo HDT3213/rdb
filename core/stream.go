@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/binary"
 	"fmt"
+	"strconv"
 
 	"github.com/hdt3213/rdb/model"
 )
@@ -472,8 +473,7 @@ func (enc *Encoder) writeStreamEntryContent(entry *model.StreamEntry) error {
 	}
 	validCount := totalMsgs - deletedCount
 
-	// Create listpack buffer with proper backlen values
-	var listpack []byte
+	// Build listpack with proper backlen values
 	var entries []listpackEntry
 
 	// Add count and deleted count
@@ -485,8 +485,8 @@ func (enc *Encoder) writeStreamEntryContent(entry *model.StreamEntry) error {
 	for _, field := range entry.Fields {
 		entries = append(entries, listpackEntry{strVal: field})
 	}
-	// Add end marker for master fields
-	entries = append(entries, listpackEntry{isEnd: true})
+	// Add field count for master entry (this is what the decoder reads as "end flag")
+	entries = append(entries, listpackEntry{strVal: strconv.Itoa(len(entry.Fields))})
 
 	// Add messages
 	for _, msg := range entry.Msgs {
@@ -500,7 +500,7 @@ func (enc *Encoder) writeStreamEntryContent(entry *model.StreamEntry) error {
 		if len(msg.Fields) == len(entry.Fields) {
 			sameFields := true
 			for _, field := range entry.Fields {
-				if msg.Fields[field] == "" {
+				if _, exists := msg.Fields[field]; !exists {
 					sameFields = false
 					break
 				}
@@ -526,7 +526,7 @@ func (enc *Encoder) writeStreamEntryContent(entry *model.StreamEntry) error {
 
 		// Add fields
 		if flag&StreamItemFlagSameFields > 0 {
-			// Use master field names
+			// Use master field names order
 			for _, field := range entry.Fields {
 				value := msg.Fields[field]
 				entries = append(entries, listpackEntry{strVal: value})
@@ -539,15 +539,15 @@ func (enc *Encoder) writeStreamEntryContent(entry *model.StreamEntry) error {
 			}
 		}
 
-		// Add end marker for message fields
-		entries = append(entries, listpackEntry{isEnd: true})
+		// Add field count for this message (this is what the decoder reads as "end flag")
+		entries = append(entries, listpackEntry{strVal: strconv.Itoa(len(msg.Fields))})
 	}
 
 	// Build listpack with proper backlen values
-	listpack = enc.buildListpack(entries)
+	listpackData := enc.buildListpackWithBacklen(entries)
 
 	// Write the complete listpack
-	err := enc.writeString(unsafeBytes2Str(listpack))
+	err := enc.writeString(unsafeBytes2Str(listpackData))
 	if err != nil {
 		return err
 	}
@@ -558,25 +558,22 @@ func (enc *Encoder) writeStreamEntryContent(entry *model.StreamEntry) error {
 type listpackEntry struct {
 	intVal int64
 	strVal string
-	isEnd  bool
 }
 
-// buildListpack builds a proper listpack with backlen values
-func (enc *Encoder) buildListpack(entries []listpackEntry) []byte {
-	var listpack []byte
+// buildListpackWithBacklen builds a proper listpack with backlen values
+func (enc *Encoder) buildListpackWithBacklen(entries []listpackEntry) []byte {
+	var listpackData []byte
 	var entrySizes []uint32
 
 	// First pass: encode entries and calculate sizes
 	for _, entry := range entries {
 		var encoded []byte
-		if entry.isEnd {
-			encoded = []byte{0xFF}
-		} else if entry.strVal != "" {
+		if entry.strVal != "" {
 			encoded = enc.encodeListPackString(entry.strVal)
 		} else {
 			encoded = enc.encodeListPackInt(entry.intVal)
 		}
-		listpack = append(listpack, encoded...)
+		listpackData = append(listpackData, encoded...)
 		entrySizes = append(entrySizes, uint32(len(encoded)))
 	}
 
@@ -592,7 +589,7 @@ func (enc *Encoder) buildListpack(entries []listpackEntry) []byte {
 			entryStart += int(entrySizes[j])
 		}
 		entryEnd := entryStart + int(entrySizes[i])
-		finalListpack = append(listpack[entryStart:entryEnd], finalListpack...)
+		finalListpack = append(listpackData[entryStart:entryEnd], finalListpack...)
 	}
 
 	// Add header
