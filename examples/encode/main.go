@@ -90,7 +90,7 @@ func main() {
 		Entries: []*model.StreamEntry{}, // Empty entries
 		Groups:  []*model.StreamGroup{}, // Empty groups
 	}
-	err = encoder.WriteStreamObject("mystream", stream)
+	err = enc.WriteStreamObject("mystream", stream)
 	if err != nil {
 		panic(err)
 	}

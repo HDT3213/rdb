@@ -2,6 +2,7 @@ package core
 
 import (
 	"bytes"
+	"reflect"
 	"testing"
 
 	"github.com/hdt3213/rdb/model"
@@ -363,5 +364,14 @@ func decodeStreamObject(t *testing.T, buf *bytes.Buffer, stream *model.StreamObj
 
 	if len(decodedStream.Groups) != len(stream.Groups) {
 		t.Errorf("Groups count mismatch: expected %d, got %d", len(stream.Groups), len(decodedStream.Groups))
+	}
+
+	for i, entry := range decodedStream.Entries {
+		if !reflect.DeepEqual(entry.Fields, stream.Entries[i].Fields) {
+			t.Errorf("Fields mismatch at index %d: expected %v, got %v", i, stream.Entries[i].Fields, entry.Fields)
+		}
+		if !reflect.DeepEqual(entry.Msgs, stream.Entries[i].Msgs) {
+			t.Errorf("Msgs mismatch at index %d: expected %v, got %v", i, stream.Entries[i].Msgs, entry.Msgs)
+		}
 	}
 }
