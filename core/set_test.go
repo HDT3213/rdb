@@ -2,8 +2,9 @@ package core
 
 import (
 	"bytes"
-	"github.com/hdt3213/rdb/model"
 	"testing"
+
+	"github.com/hdt3213/rdb/model"
 )
 
 func TestSetEncoding(t *testing.T) {
@@ -25,6 +26,9 @@ func TestSetEncoding(t *testing.T) {
 		},
 		"007": {
 			[]byte("-1"), []byte("02"), []byte("0x3"), []byte("0o4"),
+		},
+		"int4": {
+			[]byte("32768"),
 		},
 	}
 	buf := bytes.NewBuffer(nil)
