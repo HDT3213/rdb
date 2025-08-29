@@ -139,7 +139,8 @@ func (enc *Encoder) tryWriteIntSetEncoding(key string, values [][]byte) (bool, e
 		}
 		if intV < min {
 			min = intV
-		} else if intV > max {
+		}
+		if intV > max {
 			max = intV
 		}
 		intList[i] = intV
