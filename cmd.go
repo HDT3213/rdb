@@ -67,6 +67,7 @@ func main() {
 	var expirationExpr string
 	var maxDepth int
 	var concurrent int
+	var keySize int
 	var err error
 	flagSet.StringVar(&cmd, "c", "", "command for rdb: json")
 	flagSet.StringVar(&output, "o", "", "output file path")
@@ -78,6 +79,7 @@ func main() {
 	flagSet.StringVar(&regexExpr, "regex", "", "regex expression")
 	flagSet.StringVar(&expirationExpr, "expire", "", "expiration filter expression")
 	flagSet.BoolVar(&noExpired, "no-expired", false, "filter expired keys(deprecated, please use expire)")
+	flagSet.IntVar(&keySize, "key-size", 0, "filter keys by its size")
 	_ = flagSet.Parse(os.Args[1:]) // ExitOnError
 	src := flagSet.Arg(0)
 
@@ -102,6 +104,9 @@ func main() {
 	}
 	if expirationExpr != "" {
 		options = append(options, helper.WithExpirationOption(expirationExpr))
+	}
+	if keySize >= 0 {
+		options = append(options, helper.WithKeySizeFilterOption(keySize))
 	}
 
 	var outputFile *os.File
