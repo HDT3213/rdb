@@ -1,0 +1,8 @@
+[
+{"db":0,"key":"redis-ver","size":0,"type":"aux","encoding":"","value":"7.2.5"},
+{"db":0,"key":"redis-bits","size":0,"type":"aux","encoding":"","value":"64"},
+{"db":0,"key":"ctime","size":0,"type":"aux","encoding":"","value":"1767107423"},
+{"db":0,"key":"used-mem","size":0,"type":"aux","encoding":"","value":"1269264"},
+{"db":0,"key":"aof-base","size":0,"type":"aux","encoding":"","value":"0"},
+{"db":0,"key":"functions","size":0,"type":"functions","encoding":"functions","functionsLua":"#!lua name=mylib\nredis.register_function('myfunc', function(keys, args) return 'hello' end)"}
+]

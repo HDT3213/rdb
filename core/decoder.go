@@ -54,6 +54,7 @@ const (
 )
 
 const (
+	opCodeFunction     = 245
 	opCodeModuleAux    = 247 /* Module auxiliary data. */
 	opCodeIdle         = 248 /* LRU idle time. */
 	opCodeFreq         = 249 /* LFU frequency. */
@@ -419,6 +420,7 @@ func (dec *Decoder) parse(cb func(object model.RedisObject) bool) error {
 				obj := &model.AuxObject{
 					BaseObject: &model.BaseObject{},
 				}
+				obj.Type = model.AuxType
 				obj.Key = unsafeBytes2Str(key)
 				obj.Value = unsafeBytes2Str(value)
 				tbc := cb(obj)
@@ -443,6 +445,25 @@ func (dec *Decoder) parse(cb func(object model.RedisObject) bool) error {
 			_, _, err = dec.readModuleType()
 			if err != nil {
 				return err
+			}
+			continue
+		} else if b == opCodeFunction {
+			functionsLua, err := dec.readString()
+			if err != nil {
+				return err
+			}
+			if dec.withSpecialOpCode {
+				obj := &model.FunctionsObject{
+					BaseObject: &model.BaseObject{},
+				}
+				obj.Key = "functions"
+				obj.Type = model.FunctionsType
+				obj.Encoding = "functions"
+				obj.FunctionsLua = unsafeBytes2Str(functionsLua)
+				tbc := cb(obj)
+				if !tbc {
+					break
+				}
 			}
 			continue
 		}

@@ -39,22 +39,26 @@ go install github.com/hdt3213/rdb@latest
 $ rdb
 This is a tool to parse Redis' RDB files
 Options:
-  -c command, including: json/memory/aof/bigkey/flamegraph
+  -c command, including: json/memory/aof/bigkey/prefix/flamegraph
   -o output file path
-  -n number of result, using in 
+  -n number of result, using in command: bigkey/prefix
   -port listen port for flame graph web service
   -sep separator for flamegraph, rdb will separate key by it, default value is ":". 
-                supporting multi separators: -sep sep1 -sep sep2 
+    supporting multi separators: -sep sep1 -sep sep2 
   -regex using regex expression filter keys
   -expire filter keys by its expiration time
-		1. '>1751731200' '>now' get keys with expiration time greater than given time
-		2. '<1751731200' '<now' get keys with expiration time less than given time
-		3. '1751731200~1751817600' '1751731200~now' get keys with expiration time in range
-		4. 'noexpire' get keys without expiration time
-		5. 'anyexpire' get all keys with expiration time
-  -size 根据大小过滤键值对；单位支持 B/KB/MB/GB/TB。范围表达式格式为“最小值~最大值”（例如 1KB~1MB, 0~10MB, 1024~20KB），支持使用“inf”表示无穷大（例如 1MB~inf）。
+    1. '1751731200~1751817600' get keys with expiration time in range [1751731200, 1751817600]
+    2. '1751731200~now' 'now~1751731200' magic variable 'now' represents the current timestamp
+    3. '1751731200~inf' 'now~inf' magic variable 'inf' represents the Infinity
+    4. 'noexpire' get keys without expiration time
+    5. 'anyexpire' get all keys with expiration time
+  -size filter keys by size, supports B/KB/MB/GB/TB/PB/EB
+    1. '1KB~1MB' get keys with size in range [1KB, 1MB]
+    2. '10MB~inf' magic variable 'inf' represents the Infinity
+    3. '1024~10KB' get keys with size in range [0Bytes, 10KB]
+  -concurrent The number of concurrent json converters. 4 by default.
+  -show-global-meta Show global meta likes redis-verion/ctime/functions
   -no-expired filter expired keys(deprecated, please use 'expire' option)
-  -concurrent The number of concurrent json converters. (Cpu number by default)
 
 Examples:
 parameters between '[' and ']' is optional
@@ -66,7 +70,9 @@ parameters between '[' and ']' is optional
   rdb -c aof -o dump.aof dump.rdb
 4. get largest keys
   rdb -c bigkey [-o dump.aof] [-n 10] dump.rdb
-5. draw flamegraph
+5. get number and memory size by prefix
+  rdb -c prefix [-n 10] [-max-depth 3] [-o prefix-report.csv] dump.rdb
+6. draw flamegraph
   rdb -c flamegraph [-port 16379] [-sep :] dump.rdb
 ```
 
@@ -103,6 +109,24 @@ rdb -c json -o intset_16.json cases/intset_16.rdb
 
 ```shell
 rdb -c json -o intset_16.json -concurrent 8 cases/intset_16.rdb
+```
+
+`-show-global-meta` 选项可以解析 RDB 文件中的元信息 (redis-ver、ctime、used-mem 等) 以及函数定义。
+
+```bash
+rdb -c json -o function.json -show-global-meta cases/function.rdb
+```
+
+示例：
+```json
+[
+{"db":0,"key":"redis-ver","size":0,"type":"aux","encoding":"","value":"7.2.5"},
+{"db":0,"key":"redis-bits","size":0,"type":"aux","encoding":"","value":"64"},
+{"db":0,"key":"ctime","size":0,"type":"aux","encoding":"","value":"1767107423"},
+{"db":0,"key":"used-mem","size":0,"type":"aux","encoding":"","value":"1269264"},
+{"db":0,"key":"aof-base","size":0,"type":"aux","encoding":"","value":"0"},
+{"db":0,"key":"functions","size":0,"type":"functions","encoding":"functions","functionsLua":"#!lua name=mylib\nredis.register_function('myfunc', function(keys, args) return 'hello' end)"}
+]
 ```
 
 <details>

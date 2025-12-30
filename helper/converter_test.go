@@ -133,6 +133,48 @@ func TestToJson(t *testing.T) {
 	}
 }
 
+
+func TestToJsonWithGlobalMeta(t *testing.T) {
+	// SortMapKeys will cause performance losses, only enabled during test
+	jsonEncoder = sonic.ConfigStd
+	// use same time zone to ensure RedisObject.Expiration has same json value
+	var cstZone = time.FixedZone("CST", 8*3600)
+	time.Local = cstZone
+
+	err := os.MkdirAll("tmp", os.ModePerm)
+	if err != nil {
+		return
+	}
+	defer func() {
+		err := os.RemoveAll("tmp")
+		if err != nil {
+			t.Logf("remove tmp directory failed: %v", err)
+		}
+	}()
+	testCases := []string{
+		"function",
+	}
+	for _, filename := range testCases {
+		srcRdb := filepath.Join("../cases", filename+".rdb")
+		actualJSON := filepath.Join("tmp", filename+".json")
+		expectJSON := filepath.Join("../cases", filename+".json")
+		err = ToJsons(srcRdb, actualJSON, WithGlobalMeta(), WithConcurrent(1))
+		if err != nil {
+			t.Errorf("error occurs during parse %s, err: %v", filename, err)
+			continue
+		}
+		equals, err := compareFileByLine(t, actualJSON, expectJSON)
+		if err != nil {
+			t.Errorf("error occurs during compare %s, err: %v", filename, err)
+			continue
+		}
+		if !equals {
+			t.Errorf("result is not equal of %s", filename)
+			continue
+		}
+	}
+}
+
 func TestToJsonWithRegex(t *testing.T) {
 	// SortMapKeys will cause performance losses, only enabled during test
 	jsonEncoder = sonic.ConfigStd

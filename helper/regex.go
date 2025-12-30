@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/hdt3213/rdb/bytefmt"
+	"github.com/hdt3213/rdb/core"
 	"github.com/hdt3213/rdb/model"
 )
 
@@ -198,11 +199,18 @@ func parseSizeExpr(s string) ([]int, error) {
 	return []int{min, max}, nil
 }
 
+type GlobalMetaOption bool
+
+func WithGlobalMeta() GlobalMetaOption {
+	return GlobalMetaOption(true)
+}
+
 func wrapDecoder(dec decoder, options ...interface{}) (decoder, error) {
 	var regexOpt RegexOption
 	var noExpiredOpt NoExpiredOption
 	var expirationOpt ExpirationOption
 	var sizeOpt SizeOption
+	var globalMetaOpt GlobalMetaOption
 	for _, opt := range options {
 		switch o := opt.(type) {
 		case RegexOption:
@@ -213,7 +221,15 @@ func wrapDecoder(dec decoder, options ...interface{}) (decoder, error) {
 			expirationOpt = o
 		case SizeOption:
 			sizeOpt = o
+		case GlobalMetaOption:
+			globalMetaOpt = o
 		}
+	}
+	if globalMetaOpt {
+		inner, ok := dec.(*core.Decoder)
+		if ok {
+			inner.WithSpecialOpCode()
+		}	
 	}
 	if regexOpt != nil {
 		var err error

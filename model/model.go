@@ -22,6 +22,8 @@ const (
 	DBSizeType = "dbsize"
 	// StreamType is a redis stream
 	StreamType = "stream"
+	// FunctionsType is redis functions
+	FunctionsType = "functions"
 )
 
 const (
@@ -294,6 +296,17 @@ func (o *AuxObject) MarshalJSON() ([]byte, error) {
 		Value:      string(o.Value),
 	}
 	return json.Marshal(o2)
+}
+
+// FunctionsObject stores redis functions
+type FunctionsObject struct {
+	*BaseObject
+	FunctionsLua string `json:"functionsLua"`
+}
+
+// GetType returns redis object type
+func (o *FunctionsObject) GetType() string {
+	return FunctionsType
 }
 
 // DBSizeObject stores db size metadata

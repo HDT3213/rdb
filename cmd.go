@@ -17,20 +17,21 @@ Options:
   -n number of result, using in command: bigkey/prefix
   -port listen port for flame graph web service
   -sep separator for flamegraph, rdb will separate key by it, default value is ":". 
-		supporting multi separators: -sep sep1 -sep sep2 
+    supporting multi separators: -sep sep1 -sep sep2 
   -regex using regex expression filter keys
   -expire filter keys by its expiration time
-		1. '1751731200~1751817600' get keys with expiration time in range [1751731200, 1751817600]
-		2. '1751731200~now' 'now~1751731200' magic variable 'now' represents the current timestamp
-		3. '1751731200~inf' 'now~inf' magic variable 'inf' represents the Infinity
-		4. 'noexpire' get keys without expiration time
-		5. 'anyexpire' get all keys with expiration time
+    1. '1751731200~1751817600' get keys with expiration time in range [1751731200, 1751817600]
+    2. '1751731200~now' 'now~1751731200' magic variable 'now' represents the current timestamp
+    3. '1751731200~inf' 'now~inf' magic variable 'inf' represents the Infinity
+    4. 'noexpire' get keys without expiration time
+    5. 'anyexpire' get all keys with expiration time
   -size filter keys by size, supports B/KB/MB/GB/TB/PB/EB
-		1. '1KB~1MB' get keys with size in range [1KB, 1MB]
-		2. '10MB~inf' magic variable 'inf' represents the Infinity
-		3. '1024~10KB' get keys with size in range [0Bytes, 10KB]
-  -no-expired filter expired keys(deprecated, please use 'expire' option)
+    1. '1KB~1MB' get keys with size in range [1KB, 1MB]
+    2. '10MB~inf' magic variable 'inf' represents the Infinity
+    3. '1024~10KB' get keys with size in range [0Bytes, 10KB]
   -concurrent The number of concurrent json converters. 4 by default.
+  -show-global-meta Show global meta likes redis-verion/ctime/functions
+  -no-expired filter expired keys(deprecated, please use 'expire' option)
 
 Examples:
 parameters between '[' and ']' is optional
@@ -72,6 +73,7 @@ func main() {
 	var sizeExpr string
 	var maxDepth int
 	var concurrent int
+	var showGlobalMeta bool
 	var err error
 	flagSet.StringVar(&cmd, "c", "", "command for rdb: json")
 	flagSet.StringVar(&output, "o", "", "output file path")
@@ -84,6 +86,7 @@ func main() {
 	flagSet.StringVar(&expirationExpr, "expire", "", "expiration filter expression")
 	flagSet.StringVar(&sizeExpr, "size", "", "size filter expression")
 	flagSet.BoolVar(&noExpired, "no-expired", false, "filter expired keys(deprecated, please use expire)")
+	flagSet.BoolVar(&showGlobalMeta, "show-global-meta", false, "Show global meta likes redis-verion/ctime/functions")
 	_ = flagSet.Parse(os.Args[1:]) // ExitOnError
 	src := flagSet.Arg(0)
 
@@ -111,6 +114,9 @@ func main() {
 	}
 	if sizeExpr != "" {
 		options = append(options, helper.WithSizeOption(sizeExpr))
+	}
+	if showGlobalMeta {
+		options = append(options, helper.WithGlobalMeta())
 	}
 
 	var outputFile *os.File
