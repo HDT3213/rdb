@@ -1,4 +1,4 @@
 database,key,type,size,size_readable,element_count,encoding,expiration
-0,l,list,124,124B,9,quicklist2,
+0,l,list,174,174B,9,quicklist2,
 0,z,zset,139,139B,12,listpack,
 0,h,hash,150,150B,11,listpack,

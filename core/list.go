@@ -82,7 +82,7 @@ func (dec *Decoder) readQuickList2() ([][]byte, *model.Quicklist2Detail, error) 
 				return nil, nil, err
 			}
 			entries = append(entries, page...)
-			detail.NodeEncodings = append(detail.NodeEncodings, model.QuicklistNodeContainerPlain)
+			detail.NodeEncodings = append(detail.NodeEncodings, model.QuicklistNodeContainerPacked)
 			detail.ListPackEntrySize = append(detail.ListPackEntrySize, lengths)
 		} else {
 			return nil, nil, errors.New("unknown quicklist node type")
