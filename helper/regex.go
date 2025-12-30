@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hdt3213/rdb/bytefmt"
 	"github.com/hdt3213/rdb/model"
 )
 
@@ -80,6 +81,15 @@ func WithExpirationOption(expr string) ExpirationOption {
 	return ExpirationOption(expr)
 }
 
+// SizeOption filters by object size
+type SizeOption string
+
+// WithSizeOption creates a SizeOption from size expression
+// expression format: "<min>~<max>", supports KB/MB/GB/TB/PB/EB units and 'inf'
+func WithSizeOption(expr string) SizeOption {
+	return SizeOption(expr)
+}
+
 // expirationDecoder returns entries with expiration times and expiration within the range.
 type expirationDecoder struct {
 	dec             decoder
@@ -96,6 +106,22 @@ func (d *expirationDecoder) Parse(cb func(object model.RedisObject) bool) error 
 			if timestamp >= d.expirationRange[0] && timestamp <= d.expirationRange[1] {
 				return cb(object)
 			}
+		}
+		return true
+	})
+}
+
+// sizeDecoder returns entries with size within the range.
+type sizeDecoder struct {
+	dec       decoder
+	sizeRange []int
+}
+
+func (d *sizeDecoder) Parse(cb func(object model.RedisObject) bool) error {
+	return d.dec.Parse(func(object model.RedisObject) bool {
+		size := object.GetSize()
+		if size >= d.sizeRange[0] && size <= d.sizeRange[1] {
+			return cb(object)
 		}
 		return true
 	})
@@ -143,10 +169,40 @@ func parseExpireExpr(s string) ([]int64, error) {
 	return []int64{min, max}, nil
 }
 
+func parseSizeExpr(s string) ([]int, error) {
+	parseValue := func(s string) (int, error) {
+		if s == "inf" {
+			return math.MaxInt, nil
+		}
+		val, err := bytefmt.ParseSize(s)
+		if err != nil {
+			return 0, fmt.Errorf("illegal size: %v", s)
+		}
+		if val > uint64(math.MaxInt) {
+			return math.MaxInt, nil
+		}
+		return int(val), nil
+	}
+	parts := strings.Split(s, "~")
+	if len(parts) != 2 {
+		return nil, errors.New("illegal expr, should be size1~size2")
+	}
+	min, err := parseValue(parts[0])
+	if err != nil {
+		return nil, fmt.Errorf("illegal range begin")
+	}
+	max, err := parseValue(parts[1])
+	if err != nil {
+		return nil, fmt.Errorf("illegal range end")
+	}
+	return []int{min, max}, nil
+}
+
 func wrapDecoder(dec decoder, options ...interface{}) (decoder, error) {
 	var regexOpt RegexOption
 	var noExpiredOpt NoExpiredOption
 	var expirationOpt ExpirationOption
+	var sizeOpt SizeOption
 	for _, opt := range options {
 		switch o := opt.(type) {
 		case RegexOption:
@@ -155,6 +211,8 @@ func wrapDecoder(dec decoder, options ...interface{}) (decoder, error) {
 			noExpiredOpt = o
 		case ExpirationOption:
 			expirationOpt = o
+		case SizeOption:
+			sizeOpt = o
 		}
 	}
 	if regexOpt != nil {
@@ -188,6 +246,16 @@ func wrapDecoder(dec decoder, options ...interface{}) (decoder, error) {
 				dec:             dec,
 				expirationRange: rng,
 			}
+		}
+	}
+	if sizeOpt != "" {
+		rng, err := parseSizeExpr(string(sizeOpt))
+		if err != nil {
+			return nil, err
+		}
+		dec = &sizeDecoder{
+			dec:       dec,
+			sizeRange: rng,
 		}
 	}
 	return dec, nil

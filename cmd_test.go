@@ -18,6 +18,12 @@ func TestCmd(t *testing.T) {
 		}
 	}()
 	// test command line parser only
+	os.Args = []string{"", "-c", "memory", "-o", "tmp/memory_size.csv", "-size", "100~1024KB", "cases/memory.rdb"}
+	main()
+	if f, _ := os.Stat("tmp/memory_size.csv"); f == nil {
+		t.Error("command memory with size failed")
+	}
+
 	os.Args = []string{"", "-c", "json", "-o", "tmp/cmd.json", "cases/memory.rdb"}
 	main()
 	if f, _ := os.Stat("tmp/cmd.json"); f == nil {

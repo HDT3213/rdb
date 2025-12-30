@@ -65,6 +65,7 @@ Options:
 		3. '1751731200~1751817600' '1751731200~now' get keys with expiration time in range
 		4. 'noexpire' get keys without expiration time
 		5. 'anyexpire' get all keys with expiration time
+  -size filter keys by size; units supported: B/KB/MB/GB. Use the range expression 'min~max' (e.g., 1KB~1MB, 0~10MB, 1024~20KB); supports 'inf' to denote infinity(e.g., 1MB~inf)
   -no-expired filter expired keys(deprecated, please use 'expire' option)
   -concurrent The number of concurrent json converters. (CpuNum -1 by default, reserve a core for decoder)
 
@@ -417,6 +418,28 @@ Example:
 rdb -c json -o regex.json -regex '^l.*' cases/memory.rdb
 ```
 
+# Size Filter
+
+The `-size` parameter can be configured to filter based on the object size in bytes.
+
+- Units supported: KB/MB/GB/TB/PB/EB. Binary and SI prefixes both mean base-2 units:
+  - KB = K = KiB = 1024
+  - MB = M = MiB = 1024 × KB
+  - GB = G = GiB = 1024 × MB
+  - TB = T = TiB = 1024 × GB
+  - PB = P = PiB = 1024 × TB
+  - EB = E = EiB = 1024 × PB
+- Use range format `min~max` and the magic variable `inf` for infinity.
+
+Examples:
+```bash
+# Keys sized between 1KB and 1MB (inclusive)
+rdb -c json -o dump.json -size 1KB~1MB cases/memory.rdb
+
+# Keys sized greater than or equal to 10MB
+rdb -c memory -o memory.csv -size 10MB~inf cases/memory.rdb
+```
+
 # Expiration Filter
 
 The `-expire` parameter can be configured to filter based on the expiration time.
@@ -607,5 +630,3 @@ Tested on MacBook Air（M2，2022年）, using  a 1.3 GB RDB file encoded with 
 |AOF|25s|53.24MB/s|
 |Top10|6s|221.87MB/s|
 |Prefix|25s|53.24MB/s|
-
-

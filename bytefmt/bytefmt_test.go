@@ -33,13 +33,16 @@ func TestFormatSize(t *testing.T) {
 }
 
 func TestParseSize(t *testing.T) {
-	if _, err := ParseSize("0"); err != errInvalidByteQuantity {
-		t.Error("parse error")
+	if b, err := ParseSize("0"); err != nil || b != 0 {
+		t.Error("parse error 0")
 	}
-	if _, err := ParseSize("0B"); err != errInvalidByteQuantity {
-		t.Error("parse error")
+	if b, err := ParseSize("0B"); err != nil || b != 0 {
+		t.Error("parse error 0B")
 	}
 	if _, err := ParseSize("1A"); err != errInvalidByteQuantity {
+		t.Error("parse error")
+	}
+	if b, err := ParseSize("123"); err != nil || b != 123 {
 		t.Error("parse error")
 	}
 	if b, err := ParseSize("123B"); err != nil || b != 123 {

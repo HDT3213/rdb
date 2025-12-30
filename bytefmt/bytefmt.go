@@ -22,13 +22,15 @@ const (
 var errInvalidByteQuantity = errors.New("byte quantity must be a positive integer with a unit of measurement like M, MB, MiB, G, GiB, or GB")
 
 // FormatSize returns a human-readable byte string of the form 10M, 12.5K, and so forth.  The following units are available:
-//  E: Exabyte
-//  P: Petabyte
-//  T: Terabyte
-//  G: Gigabyte
-//  M: Megabyte
-//  K: Kilobyte
-//  B: Byte
+//
+//	E: Exabyte
+//	P: Petabyte
+//	T: Terabyte
+//	G: Gigabyte
+//	M: Megabyte
+//	K: Kilobyte
+//	B: Byte
+//
 // The unit that results in the smallest number greater than or equal to 1 is always chosen.
 func FormatSize(bytes uint64) string {
 	unit := ""
@@ -78,12 +80,17 @@ func ParseSize(s string) (uint64, error) {
 	i := strings.IndexFunc(s, unicode.IsLetter)
 
 	if i == -1 {
-		return 0, errInvalidByteQuantity
+		// no unit
+		bytes, err := strconv.ParseFloat(s, 64)
+		if err != nil || bytes < 0 {
+			return 0, errInvalidByteQuantity
+		}
+		return uint64(bytes), nil
 	}
 
 	bytesString, multiple := s[:i], s[i:]
 	bytes, err := strconv.ParseFloat(bytesString, 64)
-	if err != nil || bytes <= 0 {
+	if err != nil || bytes < 0 {
 		return 0, errInvalidByteQuantity
 	}
 

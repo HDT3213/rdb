@@ -25,6 +25,10 @@ Options:
 		3. '1751731200~inf' 'now~inf' magic variable 'inf' represents the Infinity
 		4. 'noexpire' get keys without expiration time
 		5. 'anyexpire' get all keys with expiration time
+  -size filter keys by size, supports B/KB/MB/GB/TB/PB/EB
+		1. '1KB~1MB' get keys with size in range [1KB, 1MB]
+		2. '10MB~inf' magic variable 'inf' represents the Infinity
+		3. '1024~10KB' get keys with size in range [0Bytes, 10KB]
   -no-expired filter expired keys(deprecated, please use 'expire' option)
   -concurrent The number of concurrent json converters. 4 by default.
 
@@ -65,6 +69,7 @@ func main() {
 	var regexExpr string
 	var noExpired bool
 	var expirationExpr string
+	var sizeExpr string
 	var maxDepth int
 	var concurrent int
 	var err error
@@ -77,6 +82,7 @@ func main() {
 	flagSet.Var(&seps, "sep", "separator for flame graph")
 	flagSet.StringVar(&regexExpr, "regex", "", "regex expression")
 	flagSet.StringVar(&expirationExpr, "expire", "", "expiration filter expression")
+	flagSet.StringVar(&sizeExpr, "size", "", "size filter expression")
 	flagSet.BoolVar(&noExpired, "no-expired", false, "filter expired keys(deprecated, please use expire)")
 	_ = flagSet.Parse(os.Args[1:]) // ExitOnError
 	src := flagSet.Arg(0)
@@ -102,6 +108,9 @@ func main() {
 	}
 	if expirationExpr != "" {
 		options = append(options, helper.WithExpirationOption(expirationExpr))
+	}
+	if sizeExpr != "" {
+		options = append(options, helper.WithSizeOption(sizeExpr))
 	}
 
 	var outputFile *os.File

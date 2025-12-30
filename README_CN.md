@@ -52,6 +52,7 @@ Options:
 		3. '1751731200~1751817600' '1751731200~now' get keys with expiration time in range
 		4. 'noexpire' get keys without expiration time
 		5. 'anyexpire' get all keys with expiration time
+  -size 根据大小过滤键值对；单位支持 B/KB/MB/GB/TB。范围表达式格式为“最小值~最大值”（例如 1KB~1MB, 0~10MB, 1024~20KB），支持使用“inf”表示无穷大（例如 1MB~inf）。
   -no-expired filter expired keys(deprecated, please use 'expire' option)
   -concurrent The number of concurrent json converters. (Cpu number by default)
 
@@ -402,6 +403,28 @@ aaaaaaa
 
 ```bash
 rdb -c json -o regex.json -regex '^l.*' cases/memory.rdb
+```
+
+# 大小过滤器
+
+`-size` 参数可以配置根据对象大小（字节数）进行过滤。
+
+- 支持的单位：KB/MB/GB/TB/PB/EB。二进制和 SI 前缀都表示 2 进制单位：
+  - KB = K = KiB = 1024
+  - MB = M = MiB = 1024 × KB
+  - GB = G = GiB = 1024 × MB
+  - TB = T = TiB = 1024 × GB
+  - PB = P = PiB = 1024 × TB
+  - EB = E = EiB = 1024 × PB
+- 使用范围格式 `min~max`，支持魔法变量 `inf` 表示无穷大。
+
+示例：
+```bash
+# 过滤大小在 1KB 到 1MB（含）之间的键
+rdb -c json -o dump.json -size 1KB~1MB cases/memory.rdb
+
+# 过滤大小大于等于 10MB 的键
+rdb -c memory -o memory.csv -size 10MB~inf cases/memory.rdb
 ```
 
 # Expiration 过滤器
