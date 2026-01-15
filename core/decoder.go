@@ -54,6 +54,7 @@ const (
 )
 
 const (
+	opCodeSlotInfo     = 244
 	opCodeFunction     = 245
 	opCodeModuleAux    = 247 /* Module auxiliary data. */
 	opCodeIdle         = 248 /* LRU idle time. */
@@ -464,6 +465,23 @@ func (dec *Decoder) parse(cb func(object model.RedisObject) bool) error {
 				if !tbc {
 					break
 				}
+			}
+			continue
+		} else if b == opCodeSlotInfo {
+			// slot
+			_, _, err = dec.readLength()
+			if err != nil {
+				return err
+			}
+			// slot size
+			_, _, err = dec.readLength()
+			if err != nil {
+				return err
+			}
+			// slot expires
+			_, _, err = dec.readLength()
+			if err != nil {
+				return err
 			}
 			continue
 		}
