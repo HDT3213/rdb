@@ -22,6 +22,8 @@ type Encoder struct {
 	hashZipListOpt  *zipListOpt
 	zsetZipListOpt  *zipListOpt
 	listZipListSize int
+
+	valkey bool
 }
 
 type zipListOpt struct {
@@ -102,6 +104,13 @@ func NewEncoder(writer io.Writer) *Encoder {
 	}
 }
 
+// NewEncoderValkey creates an encoder instance for Valkey 9+ (rdb 80)
+func NewEncoderValkey(writer io.Writer) *Encoder {
+	enc := NewEncoder(writer)
+	enc.valkey = true
+	return enc
+}
+
 // SetListZipListOpt sets list-max-ziplist-value and list-max-ziplist-entries
 func (enc *Encoder) SetListZipListOpt(maxValue, maxEntries int) *Encoder {
 	enc.listZipListOpt = &zipListOpt{
@@ -147,7 +156,8 @@ func (enc *Encoder) write(p []byte) error {
 	return nil
 }
 
-var rdbHeader = []byte("REDIS0011")
+var rdbHeaderRedis = []byte("REDIS0011")
+var rdbHeaderValkey = []byte("VALKEY080")
 
 func (enc *Encoder) validateStateChange(toState string) bool {
 	_, ok := stateChanges[enc.state][toState]
@@ -157,6 +167,10 @@ func (enc *Encoder) validateStateChange(toState string) bool {
 func (enc *Encoder) WriteHeader() error {
 	if !enc.validateStateChange(writtenHeaderState) {
 		return fmt.Errorf("cannot writing header at state: %s", enc.state)
+	}
+	var rdbHeader []byte = rdbHeaderRedis
+	if enc.valkey {
+		rdbHeader = rdbHeaderValkey
 	}
 	err := enc.write(rdbHeader)
 	if err != nil {
