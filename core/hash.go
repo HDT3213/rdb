@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"math"
 
 	"github.com/hdt3213/rdb/model"
 )
@@ -35,7 +36,7 @@ func (dec *Decoder) readHashMap() (map[string][]byte, error) {
 func (dec *Decoder) readHashMapEx(rc bool) (map[string][]byte, map[string]int64, error) {
 	var minExpire int64 = EB_EXPIRE_TIME_INVALID
 	var expire int64
-	if !rc {
+	if !rc && !dec.valkey {
 		// Hash with HFEs. min TTL at start (7.4+), 7.4RC not included
 		min, err := dec.readInt64()
 		if err != nil {
@@ -55,22 +56,24 @@ func (dec *Decoder) readHashMapEx(rc bool) (map[string][]byte, map[string]int64,
 	m := make(map[string][]byte)
 	e := make(map[string]int64)
 	for i := 0; i < int(size); i++ {
-		ttl, _, err := dec.readLength()
-		if err != nil {
-			return nil, nil, err
-		}
-		if rc {
-			// Value is absolute for 7.4RC
-			expire = int64(ttl)
-		} else if ttl == 0 {
-			// 0 Indicates no TTL. This is common case so we keep it small.
-			expire = 0
-		} else {
-			// TTL is relative to minExpire (with +1 to avoid 0 that already taken)
-			expire = int64(ttl) + minExpire - 1
-		}
-		if expire > EB_EXPIRE_TIME_MAX {
-			return nil, nil, fmt.Errorf("invalid expireAt time: %d", expire)
+		if !dec.valkey {
+			ttl, _, err := dec.readLength()
+			if err != nil {
+				return nil, nil, err
+			}
+			if rc {
+				// Value is absolute for 7.4RC
+				expire = int64(ttl)
+			} else if ttl == 0 {
+				// 0 Indicates no TTL. This is common case so we keep it small.
+				expire = 0
+			} else {
+				// TTL is relative to minExpire (with +1 to avoid 0 that already taken)
+				expire = int64(ttl) + minExpire - 1
+			}
+			if expire > EB_EXPIRE_TIME_MAX {
+				return nil, nil, fmt.Errorf("invalid expireAt time: %d", expire)
+			}
 		}
 		field, err := dec.readString()
 		if err != nil {
@@ -79,6 +82,15 @@ func (dec *Decoder) readHashMapEx(rc bool) (map[string][]byte, map[string]int64,
 		value, err := dec.readString()
 		if err != nil {
 			return nil, nil, err
+		}
+		if dec.valkey {
+			expire, err = dec.readInt64()
+			if err != nil {
+				return nil, nil, err
+			}
+			if expire < 0 {
+				expire = 0 // valkey use -1 to indicate no TTL
+			}
 		}
 		m[unsafeBytes2Str(field)] = value
 		e[unsafeBytes2Str(field)] = expire
@@ -303,7 +315,11 @@ func (enc *Encoder) WriteHashMapObjectEx(key string, hash map[string][]byte, exp
 		return err
 	}
 
-	err = enc.writeHashEncodingEx(key, hash, expire, options...)
+	if enc.valkey {
+		err = enc.writeHash2Encoding(key, hash, expire, options...)
+	} else {
+		err = enc.writeHashEncodingEx(key, hash, expire, options...)
+	}
 	if err != nil {
 		return err
 	}
@@ -373,6 +389,42 @@ func (enc *Encoder) writeHashEncodingEx(key string, hash map[string][]byte, expi
 			return err
 		}
 		err = enc.writeString(unsafeBytes2Str(value))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (enc *Encoder) writeHash2Encoding(key string, hash map[string][]byte, expire map[string]int64, options ...interface{}) error {
+	ttl := make([]byte, 8)
+	err := enc.write([]byte{typeHash2})
+	if err != nil {
+		return err
+	}
+	err = enc.writeString(key)
+	if err != nil {
+		return err
+	}
+	err = enc.writeLength(uint64(len(hash)))
+	if err != nil {
+		return err
+	}
+	for field, value := range hash {
+		err = enc.writeString(field)
+		if err != nil {
+			return err
+		}
+		err = enc.writeString(unsafeBytes2Str(value))
+		if err != nil {
+			return err
+		}
+		if expire[field] == 0 {
+			binary.LittleEndian.PutUint64(ttl, math.MaxUint64) // -1 means no TTL
+		} else {
+			binary.LittleEndian.PutUint64(ttl, uint64(expire[field]))
+		}
+		err = enc.write(ttl)
 		if err != nil {
 			return err
 		}

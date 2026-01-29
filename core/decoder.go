@@ -23,6 +23,9 @@ type Decoder struct {
 
 	withSpecialOpCode bool
 	withSpecialTypes  map[string]ModuleTypeHandleFunc
+
+	valkey     bool
+	rdbVersion int
 }
 
 // NewDecoder creates a new RDB decoder
@@ -46,15 +49,20 @@ func (dec *Decoder) WithSpecialType(moduleType string, f ModuleTypeHandleFunc) *
 	return dec
 }
 
-var magicNumber = []byte("REDIS")
+var magicNumberRedis = []byte("REDIS")
+var magicNumberValkey = []byte("VALKEY")
 
 const (
-	minVersion = 1
-	maxVersion = 12
+	minVersion       = 1
+	maxVersion       = 12
+	minVersionValkey = 80
+	maxVersionValkey = 80
 )
 
 const (
-	opCodeFunction     = 245
+	opCodeSlotImport   = 243 /* Slot import state. */
+	opCodeSlotInfo     = 244 /* Foreign slot info, safe to ignore. */
+	opCodeFunction     = 245 /* function library data */
 	opCodeModuleAux    = 247 /* Module auxiliary data. */
 	opCodeIdle         = 248 /* LRU idle time. */
 	opCodeFreq         = 249 /* LFU frequency. */
@@ -93,6 +101,8 @@ const (
 	typeHashListPackWithHfeRc // rdb 12 (only redis 7.4 rc)
 	typeHashWithHfe           // since rdb 12 (redis 7.4)
 	typeHashListPackWithHfe   // since rdb 12 (redis 7.4)
+
+	typeHash2 = typeHashWithHfeRc // Hash with field-level expiration (Valkey 9+)
 )
 
 const (
@@ -124,6 +134,7 @@ var encodingMap = map[int]string{
 	typeHashListPackWithHfeRc: model.ListPackExEncoding,
 	typeHashWithHfe:           model.HashExEncoding,
 	typeHashListPackWithHfe:   model.ListPackExEncoding,
+	// typeHash2: model.HashExEncoding, // same 22 as typeHashWithHfeRc
 }
 
 // checkHeader checks whether input has valid RDB file header
@@ -136,16 +147,27 @@ func (dec *Decoder) checkHeader() error {
 	if err != nil {
 		return fmt.Errorf("io error: %v", err)
 	}
-	if !bytes.Equal(header[0:5], magicNumber) {
+	var versionString string
+	if bytes.HasPrefix(header, magicNumberRedis) {
+		dec.valkey = false
+		versionString = string(bytes.TrimPrefix(header, magicNumberRedis))
+	} else if bytes.HasPrefix(header, magicNumberValkey) {
+		dec.valkey = true
+		versionString = string(bytes.TrimPrefix(header, magicNumberValkey))
+	} else {
 		return errors.New("file is not a RDB file")
 	}
-	version, err := strconv.Atoi(string(header[5:]))
+	version, err := strconv.Atoi(versionString)
 	if err != nil {
-		return fmt.Errorf("%s is not valid version number", string(header[5:]))
+		return fmt.Errorf("%s is not valid version number", versionString)
 	}
-	if version < minVersion || version > maxVersion {
+	if !dec.valkey && (version < minVersion || version > maxVersion) {
 		return fmt.Errorf("cannot parse version: %d", version)
 	}
+	if dec.valkey && (version < minVersionValkey || version > maxVersionValkey) {
+		return fmt.Errorf("cannot parse version: %d", version)
+	}
+	dec.rdbVersion = version
 	return nil
 }
 
@@ -465,6 +487,44 @@ func (dec *Decoder) parse(cb func(object model.RedisObject) bool) error {
 					break
 				}
 			}
+			continue
+		} else if b == opCodeSlotInfo {
+			var err error
+			var slot_id, slot_size, expires_slot_size uint64
+			slot_id, _, err = dec.readLength()
+			if err == nil {
+				slot_size, _, err = dec.readLength()
+			}
+			if err == nil {
+				expires_slot_size, _, err = dec.readLength()
+			}
+			if err != nil {
+				return err
+			}
+			_, _, _ = slot_id, slot_size, expires_slot_size // safe to skip
+			continue
+		} else if b == opCodeSlotImport {
+			job, err := dec.readString()
+			if err != nil {
+				return err
+			}
+			num_slot_ranges, _, err := dec.readLength()
+			if err != nil {
+				return err
+			}
+			var slot_from, slot_to uint64
+			ranges := make([]string, num_slot_ranges)
+			for i := uint64(0); i < num_slot_ranges; i++ {
+				slot_from, _, err = dec.readLength()
+				if err == nil {
+					slot_to, _, err = dec.readLength()
+				}
+				if err != nil {
+					return err
+				}
+				ranges[i] = fmt.Sprintf("%d-%d", slot_from, slot_to)
+			}
+			_, _ = job, ranges // no way other than skipping
 			continue
 		}
 		key, err := dec.readString()
