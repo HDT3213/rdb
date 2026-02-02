@@ -76,6 +76,10 @@ type RedisObject interface {
 	GetElemCount() int
 	// GetEncoding returns encoding of object
 	GetEncoding() string
+	// GetIdleTime returns LRU of object
+	GetIdleTime() int64
+	// GetFreq() returns LFU of object
+	GetFreq() int64
 }
 
 // BaseObject is basement of redis object
@@ -87,6 +91,8 @@ type BaseObject struct {
 	Type       string      `json:"type"`                 // Type is one of string/list/set/hash/zset
 	Encoding   string      `json:"encoding"`             // Encoding is the exact encoding method
 	Extra      interface{} `json:"-"`                    // Extra stores more detail of encoding for memory profiler and other usages
+	IdleTime   int64       `json:"lru"`
+	Freq       int64       `json:"lfu"`
 }
 
 // GetKey returns key of object
@@ -117,6 +123,16 @@ func (o *BaseObject) GetSize() int {
 // GetElemCount returns number of elements in list/set/hash/zset
 func (o *BaseObject) GetElemCount() int {
 	return 0
+}
+
+// GetIdleTime returns LRU of object
+func (o *BaseObject) GetIdleTime() int64 {
+	return o.IdleTime
+}
+
+// GetFreq() returns LFU of object
+func (o *BaseObject) GetFreq() int64 {
+	return o.Freq
 }
 
 // StringObject stores a string object

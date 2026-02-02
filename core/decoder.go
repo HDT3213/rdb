@@ -377,6 +377,8 @@ func (dec *Decoder) readObject(flag byte, base *model.BaseObject) (model.RedisOb
 func (dec *Decoder) parse(cb func(object model.RedisObject) bool) error {
 	var dbIndex int
 	var expireMs int64
+	var lru int64 = -1
+	var lfu int64 = -1
 	for {
 		b, err := dec.readByte()
 		if err != nil {
@@ -452,16 +454,18 @@ func (dec *Decoder) parse(cb func(object model.RedisObject) bool) error {
 			}
 			continue
 		} else if b == opCodeFreq {
-			_, err = dec.readByte()
+			freq, err := dec.readByte()
 			if err != nil {
 				return err
 			}
+			lfu = int64(freq)
 			continue
 		} else if b == opCodeIdle {
-			_, _, err = dec.readLength()
+			idle, _, err := dec.readLength()
 			if err != nil {
 				return err
 			}
+			lru = int64(idle)
 			continue
 		} else if b == opCodeModuleAux {
 			_, _, err = dec.readModuleType()
@@ -540,6 +544,10 @@ func (dec *Decoder) parse(cb func(object model.RedisObject) bool) error {
 			base.Expiration = &expiration
 			expireMs = 0 // reset expire ms
 		}
+		base.IdleTime = lru
+		lru = -1 // reset lru
+		base.Freq = lfu
+		lfu = -1 // reset lfu
 		obj, err := dec.readObject(b, base)
 		if err != nil {
 			return err
