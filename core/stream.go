@@ -58,6 +58,13 @@ func (dec *Decoder) readStreamListPacks(version uint) (*model.StreamObject, erro
 		return nil, err
 	}
 	stream.Groups = groups
+
+	if version >= 4 {
+		if err = dec.readStreamIdmp(stream); err != nil {
+			return nil, err
+		}
+	}
+
 	stream.Version = version
 	return stream, nil
 }
@@ -216,6 +223,70 @@ func (dec *Decoder) readStreamEntryContent(buf []byte, cursor *int, firstId *mod
 	}, nil
 }
 
+func (dec *Decoder) readStreamIdmp(stream *model.StreamObject) error {
+	duration, _, err := dec.readLength()
+	if err != nil {
+		return fmt.Errorf("read idmp duration failed: %v", err)
+	}
+	stream.IdmpDuration = duration
+
+	maxEntries, _, err := dec.readLength()
+	if err != nil {
+		return fmt.Errorf("read idmp max entries failed: %v", err)
+	}
+	stream.IdmpMaxEntries = maxEntries
+
+	numProducers, _, err := dec.readLength()
+	if err != nil {
+		return fmt.Errorf("read idmp num producers failed: %v", err)
+	}
+	producers := make([]*model.StreamProducer, 0, numProducers)
+	for i := uint64(0); i < numProducers; i++ {
+		pid, err := dec.readString()
+		if err != nil {
+			return fmt.Errorf("read idmp producer id failed: %v", err)
+		}
+		count, _, err := dec.readLength()
+		if err != nil {
+			return fmt.Errorf("read idmp entry count failed: %v", err)
+		}
+		entries := make([]*model.StreamIdmpEntry, 0, count)
+		for j := uint64(0); j < count; j++ {
+			iid, err := dec.readString()
+			if err != nil {
+				return fmt.Errorf("read idmp iid failed: %v", err)
+			}
+			sid, err := dec.readStreamId()
+			if err != nil {
+				return fmt.Errorf("read idmp stream id failed: %v", err)
+			}
+			entries = append(entries, &model.StreamIdmpEntry{
+				Iid:      unsafeBytes2Str(iid),
+				StreamId: sid,
+			})
+		}
+		producers = append(producers, &model.StreamProducer{
+			Id:      unsafeBytes2Str(pid),
+			Entries: entries,
+		})
+	}
+	stream.IdmpProducers = producers
+
+	iidsAdded, _, err := dec.readLength()
+	if err != nil {
+		return fmt.Errorf("read iids added failed: %v", err)
+	}
+	stream.IidsAdded = iidsAdded
+
+	iidsDuplicates, _, err := dec.readLength()
+	if err != nil {
+		return fmt.Errorf("read iids duplicates failed: %v", err)
+	}
+	stream.IidsDuplicates = iidsDuplicates
+
+	return nil
+}
+
 func (dec *Decoder) readStreamGroups(version uint) ([]*model.StreamGroup, error) {
 	groupCount, _, err := dec.readLength()
 	if err != nil {
@@ -349,6 +420,8 @@ func (enc *Encoder) WriteStreamObject(key string, stream *model.StreamObject, op
 		streamType = typeStreamListPacks2
 	case 3:
 		streamType = typeStreamListPacks3
+	case 4:
+		streamType = typeStreamListPacks4
 	default:
 		streamType = typeStreamListPacks // default to version 1
 	}
@@ -421,8 +494,48 @@ func (enc *Encoder) WriteStreamObject(key string, stream *model.StreamObject, op
 		return err
 	}
 
+	// Write IDMP data (version 4+)
+	if stream.Version >= 4 {
+		if err = enc.writeStreamIdmp(stream); err != nil {
+			return err
+		}
+	}
+
 	enc.state = writtenObjectState
 	return nil
+}
+
+func (enc *Encoder) writeStreamIdmp(stream *model.StreamObject) error {
+	if err := enc.writeLength(stream.IdmpDuration); err != nil {
+		return err
+	}
+	if err := enc.writeLength(stream.IdmpMaxEntries); err != nil {
+		return err
+	}
+	producers := stream.IdmpProducers
+	if err := enc.writeLength(uint64(len(producers))); err != nil {
+		return err
+	}
+	for _, p := range producers {
+		if err := enc.writeString(p.Id); err != nil {
+			return err
+		}
+		if err := enc.writeLength(uint64(len(p.Entries))); err != nil {
+			return err
+		}
+		for _, e := range p.Entries {
+			if err := enc.writeString(e.Iid); err != nil {
+				return err
+			}
+			if err := enc.writeStreamId(e.StreamId); err != nil {
+				return err
+			}
+		}
+	}
+	if err := enc.writeLength(stream.IidsAdded); err != nil {
+		return err
+	}
+	return enc.writeLength(stream.IidsDuplicates)
 }
 
 // writeStreamId writes a stream ID

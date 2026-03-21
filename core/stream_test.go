@@ -322,6 +322,130 @@ func TestWriteStreamObjectVersion3(t *testing.T) {
 	decodeStreamObject(t, &buf, stream)
 }
 
+func TestWriteStreamObjectVersion4(t *testing.T) {
+	stream := &model.StreamObject{
+		BaseObject: &model.BaseObject{
+			Key: "astream",
+		},
+		Version: 4,
+		Length:  1,
+		LastId: &model.StreamId{
+			Ms:       1704557973866,
+			Sequence: 0,
+		},
+		FirstId: &model.StreamId{
+			Ms:       1704557973866,
+			Sequence: 0,
+		},
+		MaxDeletedId: &model.StreamId{
+			Ms:       0,
+			Sequence: 0,
+		},
+		AddedEntriesCount: 1,
+		Entries: []*model.StreamEntry{
+			{
+				FirstMsgId: &model.StreamId{
+					Ms:       1704557973866,
+					Sequence: 0,
+				},
+				Fields: []string{"name"},
+				Msgs: []*model.StreamMessage{
+					{
+						Id: &model.StreamId{
+							Ms:       1704557973866,
+							Sequence: 0,
+						},
+						Fields:  map[string]string{"name": "Sara"},
+						Deleted: false,
+					},
+				},
+			},
+		},
+		Groups: []*model.StreamGroup{},
+		IdmpDuration:   60000,
+		IdmpMaxEntries: 100,
+		IdmpProducers: []*model.StreamProducer{
+			{
+				Id: "producer-1",
+				Entries: []*model.StreamIdmpEntry{
+					{
+						Iid: "req-abc-123",
+						StreamId: &model.StreamId{
+							Ms:       1704557973866,
+							Sequence: 0,
+						},
+					},
+				},
+			},
+		},
+		IidsAdded:      5,
+		IidsDuplicates: 1,
+	}
+
+	var buf bytes.Buffer
+	encoder := NewEncoder(&buf)
+	if err := encoder.WriteHeader(); err != nil {
+		t.Fatalf("Failed to write header: %v", err)
+	}
+	if err := encoder.WriteDBHeader(0, 1, 0); err != nil {
+		t.Fatalf("Failed to write DB header: %v", err)
+	}
+	if err := encoder.WriteStreamObject("astream", stream); err != nil {
+		t.Fatalf("Failed to write stream object: %v", err)
+	}
+	if err := encoder.WriteEnd(); err != nil {
+		t.Fatalf("Failed to write end: %v", err)
+	}
+
+	// Decode and verify
+	decoder := NewDecoder(&buf)
+	var decoded *model.StreamObject
+	err := decoder.Parse(func(obj model.RedisObject) bool {
+		if s, ok := obj.(*model.StreamObject); ok {
+			decoded = s
+			return false
+		}
+		return true
+	})
+	if err != nil {
+		t.Fatalf("Failed to parse: %v", err)
+	}
+	if decoded == nil {
+		t.Fatal("Failed to decode stream object")
+	}
+	if decoded.Version != 4 {
+		t.Errorf("Version: expected 4, got %d", decoded.Version)
+	}
+	if decoded.IdmpDuration != 60000 {
+		t.Errorf("IdmpDuration: expected 60000, got %d", decoded.IdmpDuration)
+	}
+	if decoded.IdmpMaxEntries != 100 {
+		t.Errorf("IdmpMaxEntries: expected 100, got %d", decoded.IdmpMaxEntries)
+	}
+	if len(decoded.IdmpProducers) != 1 {
+		t.Fatalf("IdmpProducers count: expected 1, got %d", len(decoded.IdmpProducers))
+	}
+	p := decoded.IdmpProducers[0]
+	if p.Id != "producer-1" {
+		t.Errorf("Producer Id: expected producer-1, got %s", p.Id)
+	}
+	if len(p.Entries) != 1 {
+		t.Fatalf("Producer entries count: expected 1, got %d", len(p.Entries))
+	}
+	if p.Entries[0].Iid != "req-abc-123" {
+		t.Errorf("IDMP Iid: expected req-abc-123, got %s", p.Entries[0].Iid)
+	}
+	if p.Entries[0].StreamId.Ms != 1704557973866 {
+		t.Errorf("IDMP StreamId.Ms: expected 1704557973866, got %d", p.Entries[0].StreamId.Ms)
+	}
+	if decoded.IidsAdded != 5 {
+		t.Errorf("IidsAdded: expected 5, got %d", decoded.IidsAdded)
+	}
+	if decoded.IidsDuplicates != 1 {
+		t.Errorf("IidsDuplicates: expected 1, got %d", decoded.IidsDuplicates)
+	}
+}
+
 func decodeStreamObject(t *testing.T, buf *bytes.Buffer, stream *model.StreamObject) {
 	// Decode the stream object
 	decoder := NewDecoder(buf)

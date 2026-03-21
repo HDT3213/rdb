@@ -21,6 +21,12 @@ type StreamObject struct {
 	MaxDeletedId *StreamId `json:"maxDeletedId,omitempty"`
 	// AddedEntriesCount is count of elements added in all time. only valid in V2
 	AddedEntriesCount uint64 `json:"addedEntriesCount,omitempty"`
+	// IDMP fields (since V4 / RDB 13)
+	IdmpDuration   uint64             `json:"idmpDuration,omitempty"`
+	IdmpMaxEntries uint64             `json:"idmpMaxEntries,omitempty"`
+	IdmpProducers  []*StreamProducer  `json:"idmpProducers,omitempty"`
+	IidsAdded      uint64             `json:"iidsAdded,omitempty"`
+	IidsDuplicates uint64             `json:"iidsDuplicates,omitempty"`
 }
 
 func (obj *StreamObject) GetType() string {
@@ -71,6 +77,18 @@ type StreamNAck struct {
 	Id            *StreamId `json:"id"`
 	DeliveryTime  uint64    `json:"deliveryTime"`
 	DeliveryCount uint64    `json:"deliveryCount"`
+}
+
+// StreamProducer stores IDMP producer data (since RDB 13)
+type StreamProducer struct {
+	Id      string             `json:"id"`
+	Entries []*StreamIdmpEntry `json:"entries,omitempty"`
+}
+
+// StreamIdmpEntry is an idempotency entry within a producer
+type StreamIdmpEntry struct {
+	Iid      string    `json:"iid"`
+	StreamId *StreamId `json:"streamId"`
 }
 
 // StreamConsumer is a consumer
