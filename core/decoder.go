@@ -96,7 +96,7 @@ const (
 	typeHashListPackWithHfeRc // rdb 12 (only redis 7.4 rc)
 	typeHashWithHfe           // since rdb 12 (redis 7.4)
 	typeHashListPackWithHfe   // since rdb 12 (redis 7.4)
-	typeStreamListPacks4      // since rdb 13
+	typeStreamListPacks4      // since rdb 13 (redis 8.6)
 )
 
 const (
