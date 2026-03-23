@@ -74,6 +74,8 @@ func main() {
 	var maxDepth int
 	var concurrent int
 	var showGlobalMeta bool
+	var sep string
+	var streaming bool
 	var err error
 	flagSet.StringVar(&cmd, "c", "", "command for rdb: json")
 	flagSet.StringVar(&output, "o", "", "output file path")
@@ -86,6 +88,8 @@ func main() {
 	flagSet.StringVar(&expirationExpr, "expire", "", "expiration filter expression")
 	flagSet.StringVar(&sizeExpr, "size", "", "size filter expression")
 	flagSet.BoolVar(&noExpired, "no-expired", false, "filter expired keys(deprecated, please use expire)")
+	flagSet.StringVar(&sep, "prefix-sep", ":", "separator for streaming prefix analysis")
+	flagSet.BoolVar(&streaming, "streaming", false, "use streaming mode for prefix analysis (constant memory)")
 	flagSet.BoolVar(&showGlobalMeta, "show-global-meta", false, "Show global meta likes redis-verion/ctime/functions")
 	_ = flagSet.Parse(os.Args[1:]) // ExitOnError
 	src := flagSet.Arg(0)
@@ -142,7 +146,11 @@ func main() {
 	case "bigkey":
 		err = helper.FindBiggestKeys(src, n, outputFile, options...)
 	case "prefix":
-		err = helper.PrefixAnalyse(src, n, maxDepth, outputFile, options...)
+		if streaming {
+			err = helper.StreamingPrefixAnalyse(src, n, maxDepth, sep, outputFile, options...)
+		} else {
+			err = helper.PrefixAnalyse(src, n, maxDepth, outputFile, options...)
+		}
 	case "flamegraph":
 		_, err = helper.FlameGraph(src, port, seps, options...)
 		if err != nil {
