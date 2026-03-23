@@ -76,6 +76,7 @@ func main() {
 	var showGlobalMeta bool
 	var sep string
 	var streaming bool
+	var trackMem bool
 	var err error
 	flagSet.StringVar(&cmd, "c", "", "command for rdb: json")
 	flagSet.StringVar(&output, "o", "", "output file path")
@@ -90,6 +91,7 @@ func main() {
 	flagSet.BoolVar(&noExpired, "no-expired", false, "filter expired keys(deprecated, please use expire)")
 	flagSet.StringVar(&sep, "prefix-sep", ":", "separator for streaming prefix analysis")
 	flagSet.BoolVar(&streaming, "streaming", false, "use streaming mode for prefix analysis (constant memory)")
+	flagSet.BoolVar(&trackMem, "track-mem", false, "print heap memory usage to stderr (streaming mode only)")
 	flagSet.BoolVar(&showGlobalMeta, "show-global-meta", false, "Show global meta likes redis-verion/ctime/functions")
 	_ = flagSet.Parse(os.Args[1:]) // ExitOnError
 	src := flagSet.Arg(0)
@@ -146,7 +148,9 @@ func main() {
 	case "bigkey":
 		err = helper.FindBiggestKeys(src, n, outputFile, options...)
 	case "prefix":
-		if streaming {
+		if streaming && trackMem {
+			err = helper.StreamingPrefixAnalyseWithMemTrack(src, n, maxDepth, sep, outputFile, options...)
+		} else if streaming {
 			err = helper.StreamingPrefixAnalyse(src, n, maxDepth, sep, outputFile, options...)
 		} else {
 			err = helper.PrefixAnalyse(src, n, maxDepth, outputFile, options...)
