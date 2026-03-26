@@ -26,7 +26,7 @@ func sizeOfHashObject(obj *model.HashObject) int {
 	if obj.GetEncoding() == model.ZipListEncoding {
 		extra := obj.Extra.(*model.ZiplistDetail)
 		return extra.RawStringSize
-	} else if obj.GetEncoding() == model.ListPackEncoding {
+	} else if obj.GetEncoding() == model.ListPackEncoding || obj.GetEncoding() == model.ListPackExEncoding {
 		extra := obj.Extra.(*model.ListpackDetail)
 		return extra.RawStringSize
 	}
@@ -35,6 +35,10 @@ func sizeOfHashObject(obj *model.HashObject) int {
 		size += hashTableEntryOverhead()
 		size += sizeOfString(k)
 		size += sizeOfString(unsafeBytes2Str(v))
+	}
+	if obj.GetEncoding() == model.HashExEncoding && len(obj.FieldExpirations) > 0 {
+		// Each field with expiration has an ebuckets entry (pointer + 8 bytes for the expire time)
+		size += len(obj.FieldExpirations) * (sizeOfPointer() + 8)
 	}
 	return size
 }

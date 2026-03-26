@@ -23,6 +23,17 @@ func sizeOfStreamObject(obj *model.StreamObject) int {
 				sizeOfStreamRaxTree(len(consumer.Pending))
 		}
 	}
+	if obj.Version >= 4 {
+		size += 8 * 4 // IdmpDuration, IdmpMaxEntries, IidsAdded, IidsDuplicates
+		for _, producer := range obj.IdmpProducers {
+			size += sizeOfString(producer.Id)
+			// Each producer has a rax tree of idempotency entries
+			size += sizeOfStreamRaxTree(len(producer.Entries))
+			for _, entry := range producer.Entries {
+				size += sizeOfString(entry.Iid) + 16 // iid string + StreamId (two uint64)
+			}
+		}
+	}
 	return size
 }
 

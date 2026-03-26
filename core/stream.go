@@ -294,7 +294,7 @@ func (dec *Decoder) readStreamGroups(version uint) ([]*model.StreamGroup, error)
 	}
 	groups := make([]*model.StreamGroup, 0, int(groupCount))
 	for i := uint64(0); i < groupCount; i++ {
-		name, _ := dec.readString()
+		name, err := dec.readString()
 		if err != nil {
 			return nil, err
 		}

@@ -347,11 +347,14 @@ func (enc *Encoder) writeHashEncodingEx(key string, hash map[string][]byte, expi
 		return err
 	}
 	// Hash with HFEs. min TTL at start (7.4+), 7.4RC not included
-	var minExpire int64 = 0
+	var minExpire int64 = EB_EXPIRE_TIME_INVALID
 	for _, e := range expire {
-		if e > minExpire {
+		if e > 0 && e < minExpire {
 			minExpire = e
 		}
+	}
+	if minExpire == EB_EXPIRE_TIME_INVALID {
+		minExpire = 0
 	}
 	minExpireBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(minExpireBytes[:], uint64(minExpire))
@@ -364,7 +367,11 @@ func (enc *Encoder) writeHashEncodingEx(key string, hash map[string][]byte, expi
 		return err
 	}
 	for field, value := range hash {
-		err = enc.writeLength(uint64(expire[field] + 1 - minExpire))
+		var ttl uint64
+		if expire[field] > 0 {
+			ttl = uint64(expire[field] - minExpire + 1)
+		}
+		err = enc.writeLength(ttl)
 		if err != nil {
 			return err
 		}
