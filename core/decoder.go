@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/hdt3213/rdb/memprofiler"
@@ -18,12 +20,23 @@ import (
 // Decoder is an instance of rdb parsing process
 type Decoder struct {
 	input     *bufio.Reader
-	readCount int
+	readCount int64
 	buffer    []byte
+	// to reduce disk IOPS
+	cache []byte
+	// Current Read Offset
+	cachePos atomic.Uint32
+	// Effective length of `cache`
+	cacheLen atomic.Uint32
+	// lock for real IO operations
+	refillMu sync.Mutex
 
 	withSpecialOpCode bool
 	withSpecialTypes  map[string]ModuleTypeHandleFunc
 }
+
+// cacheSize 1MB
+const cacheSize = 1024 * 1024
 
 // NewDecoder creates a new RDB decoder
 func NewDecoder(reader io.Reader) *Decoder {
@@ -31,6 +44,7 @@ func NewDecoder(reader io.Reader) *Decoder {
 	parser.input = bufio.NewReader(reader)
 	parser.buffer = make([]byte, 8)
 	parser.withSpecialTypes = make(map[string]ModuleTypeHandleFunc)
+	parser.cache = make([]byte, cacheSize)
 	return parser
 }
 
@@ -54,7 +68,8 @@ const (
 )
 
 const (
-	opCodeFunction     = 245
+	opCodeSlotInfo     = 244 /* Individual slot info, such as slot id and size (cluster mode only). */
+	opCodeFunction     = 245 /* function library data */
 	opCodeModuleAux    = 247 /* Module auxiliary data. */
 	opCodeIdle         = 248 /* LRU idle time. */
 	opCodeFreq         = 249 /* LFU frequency. */
@@ -466,6 +481,23 @@ func (dec *Decoder) parse(cb func(object model.RedisObject) bool) error {
 				}
 			}
 			continue
+		} else if b == opCodeSlotInfo {
+			// slot id
+			_, _, err = dec.readLength()
+			if err != nil {
+				return err
+			}
+			// slot size
+			_, _, err = dec.readLength()
+			if err != nil {
+				return err
+			}
+			// expires slot size
+			_, _, err = dec.readLength()
+			if err != nil {
+				return err
+			}
+			continue
 		}
 		key, err := dec.readString()
 		if err != nil {
@@ -511,6 +543,6 @@ func (dec *Decoder) Parse(cb func(object model.RedisObject) bool) (err error) {
 	return dec.parse(cb)
 }
 
-func (dec *Decoder) GetReadCount() int {
+func (dec *Decoder) GetReadCount() int64 {
 	return dec.readCount
 }

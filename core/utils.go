@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"math/rand"
+	"sync/atomic"
 	"unsafe"
 )
 
@@ -42,7 +43,8 @@ func readZipListLength(buf []byte, cursor *int) int {
 	return size
 }
 
-func (dec *Decoder) readByte() (byte, error) {
+// original code
+/*func (dec *Decoder) readByte() (byte, error) {
 	b, err := dec.input.ReadByte()
 	if err != nil {
 		return 0, err
@@ -58,6 +60,92 @@ func (dec *Decoder) readFull(buf []byte) error {
 	}
 	dec.readCount += n
 	return nil
+}*/
+
+// readByte get 1 Byte from Decoder.cache
+func (dec *Decoder) readByte() (byte, error) {
+	for {
+		pos := dec.cachePos.Load()
+		length := dec.cacheLen.Load()
+
+		if pos >= length {
+			dec.refillMu.Lock()
+			if dec.cachePos.Load() < dec.cacheLen.Load() {
+				dec.refillMu.Unlock()
+				continue
+			}
+			err := dec.refillCache()
+			dec.refillMu.Unlock()
+			if err != nil {
+				return 0, err
+			}
+			continue
+		}
+
+		if dec.cachePos.CompareAndSwap(pos, pos+1) {
+			atomic.AddInt64(&dec.readCount, 1)
+			return dec.cache[pos], nil
+		}
+	}
+}
+
+// readFull get len(buf) Bytes from Decoder.cache
+func (dec *Decoder) readFull(buf []byte) error {
+	need := len(buf)
+	copied := 0
+
+	for copied < need {
+		pos := dec.cachePos.Load()
+		length := dec.cacheLen.Load()
+
+		if pos >= length {
+			dec.refillMu.Lock()
+			if dec.cachePos.Load() < dec.cacheLen.Load() {
+				dec.refillMu.Unlock()
+				continue
+			}
+			err := dec.refillCache()
+			dec.refillMu.Unlock()
+			if err != nil {
+				if copied > 0 && err == io.EOF {
+					return io.ErrUnexpectedEOF
+				}
+				return err
+			}
+			continue
+		}
+
+		available := int(length - pos)
+		toCopy := need - copied
+		if toCopy > available {
+			toCopy = available
+		}
+
+		if dec.cachePos.CompareAndSwap(pos, pos+uint32(toCopy)) {
+			copy(buf[copied:copied+toCopy], dec.cache[pos:pos+uint32(toCopy)])
+			copied += toCopy
+			atomic.AddInt64(&dec.readCount, int64(toCopy))
+		}
+	}
+	return nil
+}
+
+// refillCache read 1MiB from disk
+func (dec *Decoder) refillCache() error {
+	n, err := dec.input.Read(dec.cache)
+
+	// eof
+	if n == 0 && err == nil {
+		return io.EOF
+	}
+
+	if n > 0 {
+		dec.cachePos.Store(0)
+		dec.cacheLen.Store(uint32(n))
+		return nil
+	}
+
+	return err
 }
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
