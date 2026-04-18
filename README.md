@@ -59,6 +59,9 @@ Options:
   -port listen port for flame graph web service
   -sep separator for flamegraph, rdb will separate key by it, default value is ":". 
     supporting multi separators: -sep sep1 -sep sep2 
+  -prefix-sep separator for prefix analysis (flat-map mode, constant memory).
+    when specified, uses separator-based analysis instead of radix tree.
+    supporting multi separators: -prefix-sep sep1 -prefix-sep sep2
   -regex using regex expression filter keys
   -expire filter keys by its expiration time
     1. '1751731200~1751817600' get keys with expiration time in range [1751731200, 1751817600]
@@ -86,7 +89,9 @@ parameters between '[' and ']' is optional
   rdb -c bigkey [-o dump.aof] [-n 10] dump.rdb
 5. get number and memory size by prefix
   rdb -c prefix [-n 10] [-max-depth 3] [-o prefix-report.csv] dump.rdb
-6. draw flamegraph
+6. get number and memory size by prefix with separator (constant memory)
+  rdb -c prefix [-n 10] [-max-depth 3] -prefix-sep : [-o prefix-report.csv] dump.rdb
+7. draw flamegraph
   rdb -c flamegraph [-port 16379] [-sep :] dump.rdb
 ```
 
@@ -415,6 +420,22 @@ Example:
 
 ```bash
 rdb -c prefix -n 10 -max-depth 2 -o prefix.csv cases/memory.rdb
+```
+
+## Separator-based Prefix Analysis (Constant Memory)
+
+When you specify `-prefix-sep`, RDB uses a flat map instead of a radix tree for prefix analysis. This mode has constant memory usage regardless of the number of keys, making it suitable for very large RDB files.
+
+You need to specify the separator(s) used in your key naming convention. Multiple separators are supported and will be normalized to the first one.
+
+```bash
+rdb -c prefix -prefix-sep : -n 10 -max-depth 2 -o prefix.csv dump.rdb
+```
+
+With multiple separators (e.g., keys use both `:` and `.`):
+
+```bash
+rdb -c prefix -prefix-sep : -prefix-sep . -n 10 -o prefix.csv dump.rdb
 ```
 
 # Flame Graph

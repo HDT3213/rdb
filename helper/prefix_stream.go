@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -21,22 +20,15 @@ type prefixStats struct {
 	keyCount int
 }
 
-// StreamingPrefixAnalyse reads an RDB file and aggregates memory usage by key prefix
-// using constant memory (no radix tree). Keys are split by separator up to maxDepth.
-// When trackMem is true, heap usage stats are printed to stderr every 1M keys.
-func StreamingPrefixAnalyse(rdbFilename string, topN int, maxDepth int, separator string, output *os.File, options ...interface{}) error {
-	return streamingPrefixAnalyse(rdbFilename, topN, maxDepth, separator, false, output, options...)
-}
-
-// StreamingPrefixAnalyseWithMemTrack is like StreamingPrefixAnalyse but prints
-// heap memory usage to stderr periodically.
-func StreamingPrefixAnalyseWithMemTrack(rdbFilename string, topN int, maxDepth int, separator string, output *os.File, options ...interface{}) error {
-	return streamingPrefixAnalyse(rdbFilename, topN, maxDepth, separator, true, output, options...)
-}
-
-func streamingPrefixAnalyse(rdbFilename string, topN int, maxDepth int, separator string, trackMem bool, output *os.File, options ...interface{}) error {
+// SepPrefixAnalyse reads an RDB file and aggregates memory usage by key prefix
+// using a flat map (constant memory). Keys are split by the given separators up to maxDepth.
+// Multiple separators are normalized to the first one before splitting.
+func SepPrefixAnalyse(rdbFilename string, topN int, maxDepth int, separators []string, output *os.File, options ...interface{}) error {
 	if rdbFilename == "" {
 		return errors.New("src file path is required")
+	}
+	if len(separators) == 0 {
+		return errors.New("at least one separator is required")
 	}
 	if topN <= 0 {
 		topN = math.MaxInt
@@ -56,49 +48,33 @@ func streamingPrefixAnalyse(rdbFilename string, topN int, maxDepth int, separato
 		return err
 	}
 
-	// flat map: "db:prefix" -> stats. One entry per unique prefix, typically 1K-50K entries.
+	primarySep := separators[0]
+
+	// flat map: "db\x00prefix" -> stats
 	prefixes := make(map[string]*prefixStats)
-	var keysSeen int
 
 	err = dec.Parse(func(object model.RedisObject) bool {
 		key := object.GetKey()
 		db := object.GetDBIndex()
 		size := object.GetSize()
 
-		// extract prefix at each depth level and accumulate
-		var charMode bool
-		var parts []string
-		if separator == "" {
-			// per-character split: prefix at depth N = first N chars of key
-			charMode = true
-			for _, ch := range key {
-				parts = append(parts, string(ch))
-			}
-		} else {
-			parts = strings.SplitN(key, separator, maxDepth+1)
+		// normalize all separators to the primary one
+		normalizedKey := key
+		for i := 1; i < len(separators); i++ {
+			normalizedKey = strings.ReplaceAll(normalizedKey, separators[i], primarySep)
 		}
-		var limit int
-		if charMode {
-			limit = len(parts)
-			if limit > maxDepth {
-				limit = maxDepth
-			}
-		} else {
-			// only emit prefixes that actually group keys —
-			// skip depth == len(parts) since that's the full key, not a prefix
-			limit = len(parts) - 1
-			if limit > maxDepth {
-				limit = maxDepth
-			}
+
+		parts := strings.SplitN(normalizedKey, primarySep, maxDepth+1)
+
+		// only emit prefixes that actually group keys —
+		// skip depth == len(parts) since that's the full key, not a prefix
+		limit := len(parts) - 1
+		if limit > maxDepth {
+			limit = maxDepth
 		}
+
 		for depth := 1; depth <= limit; depth++ {
-			var prefix string
-			if charMode {
-				prefix = strings.Join(parts[:depth], "")
-			} else {
-				prefix = strings.Join(parts[:depth], separator)
-				prefix += separator + "*"
-			}
+			prefix := strings.Join(parts[:depth], primarySep) + primarySep + "*"
 			mapKey := strconv.Itoa(db) + "\x00" + prefix
 
 			s := prefixes[mapKey]
@@ -110,34 +86,10 @@ func streamingPrefixAnalyse(rdbFilename string, topN int, maxDepth int, separato
 			s.keyCount++
 		}
 
-		keysSeen++
-		if keysSeen%1_000_000 == 0 {
-			if trackMem {
-				var m runtime.MemStats
-				runtime.ReadMemStats(&m)
-				fmt.Fprintf(os.Stderr, "Processed %d keys, %d unique prefixes | heap: %s, sys: %s\n",
-					keysSeen, len(prefixes),
-					bytefmt.FormatSize(m.HeapAlloc),
-					bytefmt.FormatSize(m.Sys))
-			} else {
-				fmt.Fprintf(os.Stderr, "Processed %d keys, %d unique prefixes\n", keysSeen, len(prefixes))
-			}
-		}
 		return true
 	})
 	if err != nil {
 		return err
-	}
-
-	if trackMem {
-		var m runtime.MemStats
-		runtime.ReadMemStats(&m)
-		fmt.Fprintf(os.Stderr, "Done: %d keys, %d unique prefixes | peak heap: %s, sys: %s\n",
-			keysSeen, len(prefixes),
-			bytefmt.FormatSize(m.HeapAlloc),
-			bytefmt.FormatSize(m.Sys))
-	} else {
-		fmt.Fprintf(os.Stderr, "Done: %d keys, %d unique prefixes\n", keysSeen, len(prefixes))
 	}
 
 	// sort by size descending
