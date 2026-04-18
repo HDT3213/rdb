@@ -33,10 +33,12 @@ func (dec *Decoder) readHashMap() (map[string][]byte, error) {
 	return m, nil
 }
 
+// readHashMapEx reads hash with field-level expiration for Redis 7.4+ (typeHashWithHfe / typeHashWithHfeRc).
+// rc=true for 7.4 RC format (absolute TTL, no minExpire header), rc=false for 7.4 GA format (relative TTL with minExpire header).
 func (dec *Decoder) readHashMapEx(rc bool) (map[string][]byte, map[string]int64, error) {
 	var minExpire int64 = EB_EXPIRE_TIME_INVALID
 	var expire int64
-	if !rc && !dec.valkey {
+	if !rc {
 		// Hash with HFEs. min TTL at start (7.4+), 7.4RC not included
 		min, err := dec.readInt64()
 		if err != nil {
@@ -56,24 +58,22 @@ func (dec *Decoder) readHashMapEx(rc bool) (map[string][]byte, map[string]int64,
 	m := make(map[string][]byte)
 	e := make(map[string]int64)
 	for i := 0; i < int(size); i++ {
-		if !dec.valkey {
-			ttl, _, err := dec.readLength()
-			if err != nil {
-				return nil, nil, err
-			}
-			if rc {
-				// Value is absolute for 7.4RC
-				expire = int64(ttl)
-			} else if ttl == 0 {
-				// 0 Indicates no TTL. This is common case so we keep it small.
-				expire = 0
-			} else {
-				// TTL is relative to minExpire (with +1 to avoid 0 that already taken)
-				expire = int64(ttl) + minExpire - 1
-			}
-			if expire > EB_EXPIRE_TIME_MAX {
-				return nil, nil, fmt.Errorf("invalid expireAt time: %d", expire)
-			}
+		ttl, _, err := dec.readLength()
+		if err != nil {
+			return nil, nil, err
+		}
+		if rc {
+			// Value is absolute for 7.4RC
+			expire = int64(ttl)
+		} else if ttl == 0 {
+			// 0 Indicates no TTL. This is common case so we keep it small.
+			expire = 0
+		} else {
+			// TTL is relative to minExpire (with +1 to avoid 0 that already taken)
+			expire = int64(ttl) + minExpire - 1
+		}
+		if expire > EB_EXPIRE_TIME_MAX {
+			return nil, nil, fmt.Errorf("invalid expireAt time: %d", expire)
 		}
 		field, err := dec.readString()
 		if err != nil {
@@ -83,14 +83,39 @@ func (dec *Decoder) readHashMapEx(rc bool) (map[string][]byte, map[string]int64,
 		if err != nil {
 			return nil, nil, err
 		}
-		if dec.valkey {
-			expire, err = dec.readInt64()
-			if err != nil {
-				return nil, nil, err
-			}
-			if expire < 0 {
-				expire = 0 // valkey use -1 to indicate no TTL
-			}
+		m[unsafeBytes2Str(field)] = value
+		e[unsafeBytes2Str(field)] = expire
+	}
+	return m, e, nil
+}
+
+// readHashMapExValkey reads hash with field-level expiration for Valkey 9+ (typeHash2).
+// Valkey stores absolute expiration timestamps as int64 after each field-value pair.
+// -1 (or negative) means no TTL, which is normalized to 0.
+func (dec *Decoder) readHashMapExValkey() (map[string][]byte, map[string]int64, error) {
+	size, _, err := dec.readLength()
+	if err != nil {
+		return nil, nil, err
+	} else if size == 0 {
+		return nil, nil, fmt.Errorf("hash read empty key")
+	}
+	m := make(map[string][]byte)
+	e := make(map[string]int64)
+	for i := 0; i < int(size); i++ {
+		field, err := dec.readString()
+		if err != nil {
+			return nil, nil, err
+		}
+		value, err := dec.readString()
+		if err != nil {
+			return nil, nil, err
+		}
+		expire, err := dec.readInt64()
+		if err != nil {
+			return nil, nil, err
+		}
+		if expire < 0 {
+			expire = 0 // valkey uses -1 to indicate no TTL
 		}
 		m[unsafeBytes2Str(field)] = value
 		e[unsafeBytes2Str(field)] = expire
@@ -363,11 +388,17 @@ func (enc *Encoder) writeHashEncodingEx(key string, hash map[string][]byte, expi
 		return err
 	}
 	// Hash with HFEs. min TTL at start (7.4+), 7.4RC not included
-	var minExpire int64 = 0
+	// minExpire is the minimum non-zero expiration time across all fields,
+	// used as a base for relative TTL encoding. Matches Redis hashTypeGetMinExpire().
+	var minExpire int64 = EB_EXPIRE_TIME_INVALID
 	for _, e := range expire {
-		if e > minExpire {
+		if e > 0 && e < minExpire {
 			minExpire = e
 		}
+	}
+	if minExpire == EB_EXPIRE_TIME_INVALID {
+		// No field has expiration, use 0
+		minExpire = 0
 	}
 	minExpireBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(minExpireBytes[:], uint64(minExpire))
@@ -380,7 +411,16 @@ func (enc *Encoder) writeHashEncodingEx(key string, hash map[string][]byte, expi
 		return err
 	}
 	for field, value := range hash {
-		err = enc.writeLength(uint64(expire[field] + 1 - minExpire))
+		fieldExpire := expire[field]
+		var ttl uint64
+		if fieldExpire == 0 {
+			// 0 indicates no TTL
+			ttl = 0
+		} else {
+			// TTL is relative to minExpire (with +1 to avoid 0 that already taken)
+			ttl = uint64(fieldExpire - minExpire + 1)
+		}
+		err = enc.writeLength(ttl)
 		if err != nil {
 			return err
 		}

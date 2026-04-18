@@ -349,8 +349,17 @@ func (dec *Decoder) readObject(flag byte, base *model.BaseObject) (model.RedisOb
 			BaseObject: base,
 			Members:    set,
 		}, nil
-	case typeHashWithHfe, typeHashWithHfeRc:
-		hash, expire, err := dec.readHashMapEx(func() bool { return flag == typeHashWithHfeRc }())
+	case typeHashWithHfe, typeHashWithHfeRc: // typeHash2 == typeHashWithHfeRc, same value 22
+		var hash map[string][]byte
+		var expire map[string]int64
+		var err error
+		if dec.valkey {
+			// Valkey 9+ Hash2: absolute timestamps after each field-value pair
+			hash, expire, err = dec.readHashMapExValkey()
+		} else {
+			// Redis 7.4: typeHashWithHfeRc (rc=true) or typeHashWithHfe (rc=false)
+			hash, expire, err = dec.readHashMapEx(flag == typeHashWithHfeRc)
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -377,8 +386,8 @@ func (dec *Decoder) readObject(flag byte, base *model.BaseObject) (model.RedisOb
 func (dec *Decoder) parse(cb func(object model.RedisObject) bool) error {
 	var dbIndex int
 	var expireMs int64
-	var lru int64 = -1
-	var lfu int64 = -1
+	var lru *int64
+	var lfu *int64
 	for {
 		b, err := dec.readByte()
 		if err != nil {
@@ -458,14 +467,16 @@ func (dec *Decoder) parse(cb func(object model.RedisObject) bool) error {
 			if err != nil {
 				return err
 			}
-			lfu = int64(freq)
+			v := int64(freq)
+			lfu = &v
 			continue
 		} else if b == opCodeIdle {
 			idle, _, err := dec.readLength()
 			if err != nil {
 				return err
 			}
-			lru = int64(idle)
+			v := int64(idle)
+			lru = &v
 			continue
 		} else if b == opCodeModuleAux {
 			_, _, err = dec.readModuleType()
@@ -493,6 +504,10 @@ func (dec *Decoder) parse(cb func(object model.RedisObject) bool) error {
 			}
 			continue
 		} else if b == opCodeSlotInfo {
+			if !dec.valkey {
+				return fmt.Errorf("unsupported opcode 244 in Redis RDB version %d", dec.rdbVersion)
+			}
+			// Valkey 9+: slot info metadata, safe to skip
 			var err error
 			var slot_id, slot_size, expires_slot_size uint64
 			slot_id, _, err = dec.readLength()
@@ -507,28 +522,35 @@ func (dec *Decoder) parse(cb func(object model.RedisObject) bool) error {
 			}
 			_, _, _ = slot_id, slot_size, expires_slot_size // safe to skip
 			continue
-		} else if b == opCodeSlotImport {
-			job, err := dec.readString()
-			if err != nil {
-				return err
-			}
-			num_slot_ranges, _, err := dec.readLength()
-			if err != nil {
-				return err
-			}
-			var slot_from, slot_to uint64
-			ranges := make([]string, num_slot_ranges)
-			for i := uint64(0); i < num_slot_ranges; i++ {
-				slot_from, _, err = dec.readLength()
-				if err == nil {
-					slot_to, _, err = dec.readLength()
-				}
+		} else if b == opCodeSlotImport { // opcode 243: Valkey=SlotImport, Redis 8.0+=KeyMeta
+			if dec.valkey {
+				// Valkey 9+: slot import state
+				job, err := dec.readString()
 				if err != nil {
 					return err
 				}
-				ranges[i] = fmt.Sprintf("%d-%d", slot_from, slot_to)
+				num_slot_ranges, _, err := dec.readLength()
+				if err != nil {
+					return err
+				}
+				var slot_from, slot_to uint64
+				ranges := make([]string, num_slot_ranges)
+				for i := uint64(0); i < num_slot_ranges; i++ {
+					slot_from, _, err = dec.readLength()
+					if err == nil {
+						slot_to, _, err = dec.readLength()
+					}
+					if err != nil {
+						return err
+					}
+					ranges[i] = fmt.Sprintf("%d-%d", slot_from, slot_to)
+				}
+				_, _ = job, ranges // safe to skip
+			} else {
+				// Redis 8.0+: RDB_OPCODE_KEY_META (same opcode value 243)
+				// Not yet supported; return error to avoid silent data corruption
+				return fmt.Errorf("unsupported opcode: RDB_OPCODE_KEY_META (243) in Redis RDB version %d", dec.rdbVersion)
 			}
-			_, _ = job, ranges // no way other than skipping
 			continue
 		}
 		key, err := dec.readString()
@@ -545,9 +567,9 @@ func (dec *Decoder) parse(cb func(object model.RedisObject) bool) error {
 			expireMs = 0 // reset expire ms
 		}
 		base.IdleTime = lru
-		lru = -1 // reset lru
+		lru = nil // reset lru
 		base.Freq = lfu
-		lfu = -1 // reset lfu
+		lfu = nil // reset lfu
 		obj, err := dec.readObject(b, base)
 		if err != nil {
 			return err

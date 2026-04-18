@@ -76,9 +76,14 @@ type RedisObject interface {
 	GetElemCount() int
 	// GetEncoding returns encoding of object
 	GetEncoding() string
-	// GetIdleTime returns LRU of object
+}
+
+// EvictionInfo is an optional interface for objects that carry LRU/LFU metadata.
+// Use type assertion to check if an object implements this interface.
+type EvictionInfo interface {
+	// GetIdleTime returns LRU idle time of object, -1 if not available
 	GetIdleTime() int64
-	// GetFreq() returns LFU of object
+	// GetFreq returns LFU frequency of object, -1 if not available
 	GetFreq() int64
 }
 
@@ -91,8 +96,8 @@ type BaseObject struct {
 	Type       string      `json:"type"`                 // Type is one of string/list/set/hash/zset
 	Encoding   string      `json:"encoding"`             // Encoding is the exact encoding method
 	Extra      interface{} `json:"-"`                    // Extra stores more detail of encoding for memory profiler and other usages
-	IdleTime   int64       `json:"lru"`
-	Freq       int64       `json:"lfu"`
+	IdleTime   *int64      `json:"lru,omitempty"`
+	Freq       *int64      `json:"lfu,omitempty"`
 }
 
 // GetKey returns key of object
@@ -125,14 +130,20 @@ func (o *BaseObject) GetElemCount() int {
 	return 0
 }
 
-// GetIdleTime returns LRU of object
+// GetIdleTime returns LRU idle time of object, -1 if not available
 func (o *BaseObject) GetIdleTime() int64 {
-	return o.IdleTime
+	if o.IdleTime == nil {
+		return -1
+	}
+	return *o.IdleTime
 }
 
-// GetFreq() returns LFU of object
+// GetFreq returns LFU frequency of object, -1 if not available
 func (o *BaseObject) GetFreq() int64 {
-	return o.Freq
+	if o.Freq == nil {
+		return -1
+	}
+	return *o.Freq
 }
 
 // StringObject stores a string object
