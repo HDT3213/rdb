@@ -63,6 +63,11 @@ func TestCmd(t *testing.T) {
 	if f, _ := os.Stat("tmp/tree.csv"); f == nil {
 		t.Error("command prefix failed")
 	}
+	os.Args = []string{"", "-c", "prefix", "-prefix-sep", ":", "-o", "tmp/tree_sep.csv", "cases/tree.rdb"}
+	main()
+	if f, _ := os.Stat("tmp/tree_sep.csv"); f == nil {
+		t.Error("command prefix with prefix-sep failed")
+	}
 
 	// test error command line
 	os.Args = []string{"", "-c", "json", "-o", "tmp/output", "/none/a"}

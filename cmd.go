@@ -18,6 +18,9 @@ Options:
   -port listen port for flame graph web service
   -sep separator for flamegraph, rdb will separate key by it, default value is ":". 
     supporting multi separators: -sep sep1 -sep sep2 
+  -prefix-sep separator for prefix analysis (flat-map mode, constant memory).
+    when specified, uses separator-based analysis instead of radix tree.
+    supporting multi separators: -prefix-sep sep1 -prefix-sep sep2
   -regex using regex expression filter keys
   -expire filter keys by its expiration time
     1. '1751731200~1751817600' get keys with expiration time in range [1751731200, 1751817600]
@@ -45,7 +48,9 @@ parameters between '[' and ']' is optional
   rdb -c bigkey [-o dump.aof] [-n 10] dump.rdb
 5. get number and memory size by prefix
   rdb -c prefix [-n 10] [-max-depth 3] [-o prefix-report.csv] dump.rdb
-6. draw flamegraph
+6. get number and memory size by prefix with separator (constant memory)
+  rdb -c prefix [-n 10] [-max-depth 3] -prefix-sep : [-o prefix-report.csv] dump.rdb
+7. draw flamegraph
   rdb -c flamegraph [-port 16379] [-sep :] dump.rdb
 `
 
@@ -74,9 +79,7 @@ func main() {
 	var maxDepth int
 	var concurrent int
 	var showGlobalMeta bool
-	var sep string
-	var streaming bool
-	var trackMem bool
+	var prefixSeps separators
 	var err error
 	flagSet.StringVar(&cmd, "c", "", "command for rdb: json")
 	flagSet.StringVar(&output, "o", "", "output file path")
@@ -89,9 +92,7 @@ func main() {
 	flagSet.StringVar(&expirationExpr, "expire", "", "expiration filter expression")
 	flagSet.StringVar(&sizeExpr, "size", "", "size filter expression")
 	flagSet.BoolVar(&noExpired, "no-expired", false, "filter expired keys(deprecated, please use expire)")
-	flagSet.StringVar(&sep, "prefix-sep", ":", "separator for streaming prefix analysis")
-	flagSet.BoolVar(&streaming, "streaming", false, "use streaming mode for prefix analysis (constant memory)")
-	flagSet.BoolVar(&trackMem, "track-mem", false, "print heap memory usage to stderr (streaming mode only)")
+	flagSet.Var(&prefixSeps, "prefix-sep", "separator for prefix analysis (flat-map mode, constant memory)")
 	flagSet.BoolVar(&showGlobalMeta, "show-global-meta", false, "Show global meta likes redis-verion/ctime/functions")
 	_ = flagSet.Parse(os.Args[1:]) // ExitOnError
 	src := flagSet.Arg(0)
@@ -148,10 +149,8 @@ func main() {
 	case "bigkey":
 		err = helper.FindBiggestKeys(src, n, outputFile, options...)
 	case "prefix":
-		if streaming && trackMem {
-			err = helper.StreamingPrefixAnalyseWithMemTrack(src, n, maxDepth, sep, outputFile, options...)
-		} else if streaming {
-			err = helper.StreamingPrefixAnalyse(src, n, maxDepth, sep, outputFile, options...)
+		if len(prefixSeps) > 0 {
+			err = helper.SepPrefixAnalyse(src, n, maxDepth, prefixSeps, outputFile, options...)
 		} else {
 			err = helper.PrefixAnalyse(src, n, maxDepth, outputFile, options...)
 		}
