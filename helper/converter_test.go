@@ -174,6 +174,46 @@ func TestToJsonWithHashFieldExpiration(t *testing.T) {
 	}
 }
 
+func TestToJsonWithValkeyClusterMetadata(t *testing.T) {
+	jsonEncoder = sonic.ConfigStd
+	var cstZone = time.FixedZone("CST", 8*3600)
+	time.Local = cstZone
+
+	err := os.MkdirAll("tmp", os.ModePerm)
+	if err != nil {
+		return
+	}
+	defer func() {
+		err := os.RemoveAll("tmp")
+		if err != nil {
+			t.Logf("remove tmp directory failed: %v", err)
+		}
+	}()
+
+	testCases := []string{
+		"valkey_cluster_slot_info",
+		"valkey_cluster_slot_import",
+	}
+	for _, filename := range testCases {
+		srcRdb := filepath.Join("../cases", filename+".rdb")
+		actualJSON := filepath.Join("tmp", filename+".json")
+		expectJSON := filepath.Join("../cases", filename+".json")
+		err = ToJsons(srcRdb, actualJSON, WithConcurrent(1))
+		if err != nil {
+			t.Errorf("error occurs during parse %s, err: %v", filename, err)
+			continue
+		}
+		equals, err := compareFileByLine(t, actualJSON, expectJSON)
+		if err != nil {
+			t.Errorf("error occurs during compare %s, err: %v", filename, err)
+			continue
+		}
+		if !equals {
+			t.Errorf("result is not equal of %s", filename)
+		}
+	}
+}
+
 func TestToJsonWithGlobalMeta(t *testing.T) {
 	// SortMapKeys will cause performance losses, only enabled during test
 	jsonEncoder = sonic.ConfigStd
@@ -235,7 +275,7 @@ func TestToJsonWithRegex(t *testing.T) {
 	srcRdb := filepath.Join("../cases", "memory.rdb")
 	actualJSON := filepath.Join("tmp", "memory_regex.json")
 	expectJSON := filepath.Join("../cases", "memory_regex.json")
-	err = ToJsons(srcRdb, actualJSON, WithRegexOption("^l.*"))
+	err = ToJsons(srcRdb, actualJSON, WithRegexOption("^l.*"), WithConcurrent(1))
 	if err != nil {
 		t.Errorf("error occurs during parse, err: %v", err)
 		return
@@ -310,6 +350,42 @@ func TestToAofWithHashFieldExpiration(t *testing.T) {
 		"hash_with_hfe",
 		"hash_as_listpack_with_hfe",
 		"valkey_hash2_with_hfe",
+	}
+	for _, filename := range testCases {
+		srcRdb := filepath.Join("../cases", filename+".rdb")
+		actualFile := filepath.Join("tmp", filename+".aof")
+		expectFile := filepath.Join("../cases", filename+".aof")
+		err = ToAOF(srcRdb, actualFile, lexOrder{})
+		if err != nil {
+			t.Errorf("error occurs during parse %s, err: %v", filename, err)
+			continue
+		}
+		equals, err := compareFileByLine(t, actualFile, expectFile)
+		if err != nil {
+			t.Errorf("error occurs during compare %s, err: %v", filename, err)
+			continue
+		}
+		if !equals {
+			t.Errorf("result is not equal of %s", filename)
+		}
+	}
+}
+
+func TestToAofWithValkeyClusterMetadata(t *testing.T) {
+	err := os.MkdirAll("tmp", os.ModePerm)
+	if err != nil {
+		return
+	}
+	defer func() {
+		err := os.RemoveAll("tmp")
+		if err != nil {
+			t.Logf("remove tmp directory failed: %v", err)
+		}
+	}()
+
+	testCases := []string{
+		"valkey_cluster_slot_info",
+		"valkey_cluster_slot_import",
 	}
 	for _, filename := range testCases {
 		srcRdb := filepath.Join("../cases", filename+".rdb")
