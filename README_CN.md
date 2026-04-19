@@ -15,6 +15,7 @@
 - 将 RDB 文件中键值对数据转换为 JSON 格式
 - 将 RDB 文件转换为 AOF 文件（即 Redis 序列化协议）
 - 寻找 RDB 文件中大键值对
+- 根据 LFU 频率寻找 RDB 文件中最热的键值对
 - 根据 RDB 文件绘制内存火焰图，用来分析哪类键值对占用了最多内存
 - 通过 API 遍历 RDB 文件内容，自定义用途
 - 生成 RDB 文件
@@ -39,9 +40,9 @@ go install github.com/hdt3213/rdb@latest
 $ rdb
 This is a tool to parse Redis' RDB files
 Options:
-  -c command, including: json/memory/aof/bigkey/prefix/flamegraph
+  -c command, including: json/memory/aof/bigkey/hotkey/prefix/flamegraph
   -o output file path
-  -n number of result, using in command: bigkey/prefix
+  -n number of result, using in command: bigkey/hotkey/prefix
   -port listen port for flame graph web service
   -sep separator for flamegraph, rdb will separate key by it, default value is ":". 
     supporting multi separators: -sep sep1 -sep sep2 
@@ -79,6 +80,8 @@ parameters between '[' and ']' is optional
   rdb -c prefix [-n 10] [-max-depth 3] -prefix-sep : [-o prefix-report.csv] dump.rdb
 7. draw flamegraph
   rdb -c flamegraph [-port 16379] [-sep :] dump.rdb
+7. get hottest keys by LFU frequency (requires maxmemory-policy allkeys-lfu/volatile-lfu)
+  rdb -c hotkey [-o hotkey.csv] [-n 50] dump.rdb
 ```
 
 # 转换为 JSON 格式
@@ -137,6 +140,45 @@ rdb -c json -o function.json -show-global-meta cases/function.rdb
 <details>
 <summary>Json 格式</summary>
   
+## 通用字段
+
+所有对象都包含以下基础字段：
+
+- `db`：数据库索引
+- `key`：键名
+- `size`：估计的内存占用大小（字节）
+- `type`：Redis 类型（string/list/set/hash/zset/stream/aux/functions）
+- `expiration`（可选）：过期时间，RFC3339 格式，未设置过期时间的键不包含此字段
+- `encoding`（可选）：Redis 内部使用的编码方式
+- `lru`（可选）：LRU 空闲时间（秒）。当 Redis 使用 `maxmemory-policy allkeys-lru` 或 `volatile-lru` 淘汰策略时出现
+- `lfu`（可选）：LFU 访问频率计数（0-255）。当 Redis 使用 `maxmemory-policy allkeys-lfu` 或 `volatile-lfu` 淘汰策略时出现
+
+包含 LRU 信息的示例：
+
+```json
+{
+    "db": 0,
+    "key": "mykey",
+    "size": 56,
+    "type": "string",
+    "lru": 3600,
+    "value": "hello"
+}
+```
+
+包含 LFU 信息的示例：
+
+```json
+{
+    "db": 0,
+    "key": "mykey",
+    "size": 56,
+    "type": "string",
+    "lfu": 128,
+    "value": "hello"
+}
+```
+
 ## string 
 
 ```json
@@ -413,6 +455,36 @@ database,key,type,size,size_readable,element_count
 0,zset,zset,57,57B,2
 0,set,set,39,39B,2
 ```
+
+# 寻找最热的键值对
+
+> **前提条件**：此命令要求 RDB 文件来自配置了 LFU 淘汰策略的 Redis 实例
+> （`maxmemory-policy allkeys-lfu` 或 `maxmemory-policy volatile-lfu`）。
+> 如果使用其他淘汰策略（如 LRU、random、noeviction），RDB 文件中不会包含 LFU 频率数据，输出将为空。
+
+当 Redis 使用 LFU 淘汰策略时，RDB 文件中会记录每个 key 的访问频率（0-255）。
+本工具可以用来寻找 RDB 文件中访问频率最高的 N 个键值对。用法：
+
+```
+rdb -c hotkey -n <result_number> <source_path>
+```
+
+示例：
+
+```
+rdb -c hotkey -n 5 cases/memory.rdb
+```
+
+结果示例：
+
+```csv
+database,key,type,size,size_readable,freq
+0,popular_key,string,128,128B,255
+0,hot_hash,hash,1024,1K,200
+0,busy_list,list,512,512B,150
+```
+
+注意：没有 LFU 信息的 key 会被跳过。如果 RDB 文件不是在 LFU 淘汰策略下生成的，输出将为空。
 
 # 转换为 AOF 文件
 

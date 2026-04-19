@@ -18,6 +18,7 @@ It provides abilities to:
 - Convert RDB files to JSON
 - Convert RDB files to Redis Serialization Protocol (or AOF file)
 - Find the biggest N keys in RDB files
+- Find the hottest N keys by LFU frequency in RDB files
 - Draw FlameGraph to analysis which kind of keys occupied most memory
 - Customize data usage
 - Generate RDB file
@@ -53,9 +54,9 @@ use `rdb` command in terminal, you can see it's manual
 $ rdb
 This is a tool to parse Redis' RDB files
 Options:
-  -c command, including: json/memory/aof/bigkey/prefix/flamegraph
+  -c command, including: json/memory/aof/bigkey/hotkey/prefix/flamegraph
   -o output file path
-  -n number of result, using in command: bigkey/prefix
+  -n number of result, using in command: bigkey/hotkey/prefix
   -port listen port for flame graph web service
   -sep separator for flamegraph, rdb will separate key by it, default value is ":". 
     supporting multi separators: -sep sep1 -sep sep2 
@@ -93,6 +94,8 @@ parameters between '[' and ']' is optional
   rdb -c prefix [-n 10] [-max-depth 3] -prefix-sep : [-o prefix-report.csv] dump.rdb
 7. draw flamegraph
   rdb -c flamegraph [-port 16379] [-sep :] dump.rdb
+7. get hottest keys by LFU frequency (requires maxmemory-policy allkeys-lfu/volatile-lfu)
+  rdb -c hotkey [-o hotkey.csv] [-n 50] dump.rdb
 ```
 
 # Convert to Json
@@ -152,6 +155,45 @@ Examples:
 <details>
 <summary>Json Fromat Detail</summary>
   
+## Common Fields
+
+All objects contain these base fields:
+
+- `db`: database index
+- `key`: key name
+- `size`: estimated memory size in bytes
+- `type`: redis type (string/list/set/hash/zset/stream/aux/functions)
+- `expiration` (optional): expiration time in RFC3339 format, omitted if key has no expiration
+- `encoding` (optional): the encoding used by redis internally
+- `lru` (optional): LRU idle time in seconds. Present when Redis uses the `maxmemory-policy allkeys-lru` or `volatile-lru` eviction policy
+- `lfu` (optional): LFU frequency counter (0-255). Present when Redis uses the `maxmemory-policy allkeys-lfu` or `volatile-lfu` eviction policy
+
+Example with LRU:
+
+```json
+{
+    "db": 0,
+    "key": "mykey",
+    "size": 56,
+    "type": "string",
+    "lru": 3600,
+    "value": "hello"
+}
+```
+
+Example with LFU:
+
+```json
+{
+    "db": 0,
+    "key": "mykey",
+    "size": 56,
+    "type": "string",
+    "lfu": 128,
+    "value": "hello"
+}
+```
+
 ## string 
 
 ```json
@@ -487,6 +529,37 @@ database,key,type,size,size_readable,element_count
 0,zset,zset,57,57B,2
 0,set,set,39,39B,2
 ```
+
+# Find The Hottest Keys
+
+> **Prerequisites**: This command requires the RDB file to be generated from a Redis instance configured with
+> LFU eviction policy (`maxmemory-policy allkeys-lfu` or `maxmemory-policy volatile-lfu`).
+> Under other eviction policies (e.g. LRU, random, noeviction), the RDB file does not contain LFU frequency data,
+> and the output will be empty.
+
+When Redis uses LFU eviction policy, the RDB file stores access frequency (0-255) for each key.
+RDB can find the hottest N keys by LFU frequency:
+
+```
+rdb -c hotkey -n <result_number> <source_path>
+```
+
+Example:
+
+```
+rdb -c hotkey -n 5 cases/memory.rdb
+```
+
+The examples for csv result:
+
+```csv
+database,key,type,size,size_readable,freq
+0,popular_key,string,128,128B,255
+0,hot_hash,hash,1024,1K,200
+0,busy_list,list,512,512B,150
+```
+
+Note: Keys without LFU information are skipped. If the RDB file was not generated under LFU eviction policy, the output will be empty.
 
 # Convert to AOF
 

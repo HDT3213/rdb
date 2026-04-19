@@ -90,6 +90,15 @@ func TestCmd(t *testing.T) {
 
 	os.Args = []string{"", "-c", "bigkey", "-o", "tmp/bigkey.csv", "cases/memory.rdb"}
 	main()
+
+	os.Args = []string{"", "-c", "hotkey", "-o", "tmp/hotkey.csv", "-n", "10", "cases/memory.rdb"}
+	main()
+	if f, _ := os.Stat("tmp/hotkey.csv"); f == nil {
+		t.Error("command hotkey failed")
+	}
+	os.Args = []string{"", "-c", "hotkey", "-n", "10", "cases/memory.rdb"}
+	main()
+
 	os.Args = []string{"", "-c", "none", "-o", "tmp/memory.aof", "cases/memory.rdb"}
 	main()
 	os.Args = []string{""}

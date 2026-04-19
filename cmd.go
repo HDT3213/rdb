@@ -12,9 +12,9 @@ import (
 const help = `
 This is a tool to parse Redis' RDB files
 Options:
-  -c command, including: json/memory/aof/bigkey/prefix/flamegraph
+  -c command, including: json/memory/aof/bigkey/hotkey/prefix/flamegraph
   -o output file path
-  -n number of result, using in command: bigkey/prefix
+  -n number of result, using in command: bigkey/hotkey/prefix
   -port listen port for flame graph web service
   -sep separator for flamegraph, rdb will separate key by it, default value is ":". 
     supporting multi separators: -sep sep1 -sep sep2 
@@ -52,6 +52,8 @@ parameters between '[' and ']' is optional
   rdb -c prefix [-n 10] [-max-depth 3] -prefix-sep : [-o prefix-report.csv] dump.rdb
 7. draw flamegraph
   rdb -c flamegraph [-port 16379] [-sep :] dump.rdb
+7. get hottest keys by LFU frequency (requires maxmemory-policy allkeys-lfu/volatile-lfu)
+  rdb -c hotkey [-o hotkey.csv] [-n 50] dump.rdb
 `
 
 type separators []string
@@ -148,6 +150,8 @@ func main() {
 		err = helper.ToAOF(src, output, options)
 	case "bigkey":
 		err = helper.FindBiggestKeys(src, n, outputFile, options...)
+	case "hotkey":
+		err = helper.FindHotKeys(src, n, outputFile, options...)
 	case "prefix":
 		if len(prefixSeps) > 0 {
 			err = helper.SepPrefixAnalyse(src, n, maxDepth, prefixSeps, outputFile, options...)
