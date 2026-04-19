@@ -100,26 +100,40 @@ func hashToCmd(obj *model.HashObject, useLexOrder bool) []CmdLine {
 
 	cmds := []CmdLine{cmdLine}
 	if len(obj.FieldExpirations) == len(obj.Hash) {
-		for field, expire := range obj.FieldExpirations {
+		appendFieldExpiration := func(field string, expire int64) {
 			if expire == 0 {
 				hpexp := make([][]byte, 5)
-				// HPEXPIRE key seconds FIELDS num FIELD...
+				// HPERSIST key FIELDS num FIELD...
 				hpexp[0] = hPersistCmd
 				hpexp[1] = []byte(obj.Key)
 				hpexp[2] = []byte("FIELDS")
 				hpexp[3] = []byte("1")
 				hpexp[4] = []byte(field)
 				cmds = append(cmds, hpexp)
-			} else {
-				hpexp := make([][]byte, 6)
-				// HPEXPIRE key seconds FIELDS num FIELD...
-				hpexp[0] = hPExpireAtCmd
-				hpexp[1] = []byte(obj.Key)
-				hpexp[2] = []byte(fmt.Sprintf("%d", expire))
-				hpexp[3] = []byte("FIELDS")
-				hpexp[4] = []byte("1")
-				hpexp[5] = []byte(field)
-				cmds = append(cmds, hpexp)
+				return
+			}
+			hpexp := make([][]byte, 6)
+			// HPEXPIREAT key milliseconds FIELDS num FIELD...
+			hpexp[0] = hPExpireAtCmd
+			hpexp[1] = []byte(obj.Key)
+			hpexp[2] = []byte(fmt.Sprintf("%d", expire))
+			hpexp[3] = []byte("FIELDS")
+			hpexp[4] = []byte("1")
+			hpexp[5] = []byte(field)
+			cmds = append(cmds, hpexp)
+		}
+		if useLexOrder {
+			fields := make([]string, 0, len(obj.FieldExpirations))
+			for field := range obj.FieldExpirations {
+				fields = append(fields, field)
+			}
+			sort.Strings(fields)
+			for _, field := range fields {
+				appendFieldExpiration(field, obj.FieldExpirations[field])
+			}
+		} else {
+			for field, expire := range obj.FieldExpirations {
+				appendFieldExpiration(field, expire)
 			}
 		}
 	}
