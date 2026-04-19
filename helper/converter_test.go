@@ -133,6 +133,46 @@ func TestToJson(t *testing.T) {
 	}
 }
 
+func TestToJsonWithHashFieldExpiration(t *testing.T) {
+	jsonEncoder = sonic.ConfigStd
+	var cstZone = time.FixedZone("CST", 8*3600)
+	time.Local = cstZone
+
+	err := os.MkdirAll("tmp", os.ModePerm)
+	if err != nil {
+		return
+	}
+	defer func() {
+		err := os.RemoveAll("tmp")
+		if err != nil {
+			t.Logf("remove tmp directory failed: %v", err)
+		}
+	}()
+
+	testCases := []string{
+		"hash_with_hfe",
+		"hash_as_listpack_with_hfe",
+		"valkey_hash2_with_hfe",
+	}
+	for _, filename := range testCases {
+		srcRdb := filepath.Join("../cases", filename+".rdb")
+		actualJSON := filepath.Join("tmp", filename+".json")
+		expectJSON := filepath.Join("../cases", filename+".json")
+		err = ToJsons(srcRdb, actualJSON, WithConcurrent(1))
+		if err != nil {
+			t.Errorf("error occurs during parse %s, err: %v", filename, err)
+			continue
+		}
+		equals, err := compareFileByLine(t, actualJSON, expectJSON)
+		if err != nil {
+			t.Errorf("error occurs during compare %s, err: %v", filename, err)
+			continue
+		}
+		if !equals {
+			t.Errorf("result is not equal of %s", filename)
+		}
+	}
+}
 
 func TestToJsonWithGlobalMeta(t *testing.T) {
 	// SortMapKeys will cause performance losses, only enabled during test
@@ -251,6 +291,43 @@ func TestToAof(t *testing.T) {
 	err = ToAOF("", "tmp/err.rdb")
 	if err == nil || err.Error() != "src file path is required" {
 		t.Error("failed when empty output")
+	}
+}
+
+func TestToAofWithHashFieldExpiration(t *testing.T) {
+	err := os.MkdirAll("tmp", os.ModePerm)
+	if err != nil {
+		return
+	}
+	defer func() {
+		err := os.RemoveAll("tmp")
+		if err != nil {
+			t.Logf("remove tmp directory failed: %v", err)
+		}
+	}()
+
+	testCases := []string{
+		"hash_with_hfe",
+		"hash_as_listpack_with_hfe",
+		"valkey_hash2_with_hfe",
+	}
+	for _, filename := range testCases {
+		srcRdb := filepath.Join("../cases", filename+".rdb")
+		actualFile := filepath.Join("tmp", filename+".aof")
+		expectFile := filepath.Join("../cases", filename+".aof")
+		err = ToAOF(srcRdb, actualFile, lexOrder{})
+		if err != nil {
+			t.Errorf("error occurs during parse %s, err: %v", filename, err)
+			continue
+		}
+		equals, err := compareFileByLine(t, actualFile, expectFile)
+		if err != nil {
+			t.Errorf("error occurs during compare %s, err: %v", filename, err)
+			continue
+		}
+		if !equals {
+			t.Errorf("result is not equal of %s", filename)
+		}
 	}
 }
 
