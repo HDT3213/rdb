@@ -17,6 +17,7 @@
 - 寻找 RDB 文件中大键值对
 - 根据 LFU 频率寻找 RDB 文件中最热的键值对
 - 根据 RDB 文件绘制内存火焰图，用来分析哪类键值对占用了最多内存
+- **为 RDB 文件生成统计概览**
 - 通过 API 遍历 RDB 文件内容，自定义用途
 - 生成 RDB 文件
 
@@ -40,9 +41,9 @@ go install github.com/hdt3213/rdb@latest
 $ rdb
 This is a tool to parse Redis' RDB files
 Options:
-  -c command, including: json/memory/aof/bigkey/hotkey/prefix/flamegraph
+  -c command, including: json/memory/aof/bigkey/hotkey/prefix/flamegraph/stats
   -o output file path
-  -n number of result, using in command: bigkey/hotkey/prefix
+  -n number of result, using in command: bigkey/hotkey/prefix/stats
   -port listen port for flame graph web service
   -sep separator for flamegraph, rdb will separate key by it, default value is ":". 
     supporting multi separators: -sep sep1 -sep sep2 
@@ -80,8 +81,12 @@ parameters between '[' and ']' is optional
   rdb -c prefix [-n 10] [-max-depth 3] -prefix-sep : [-o prefix-report.csv] dump.rdb
 7. draw flamegraph
   rdb -c flamegraph [-port 16379] [-sep :] dump.rdb
-7. get hottest keys by LFU frequency (requires maxmemory-policy allkeys-lfu/volatile-lfu)
+8. get hottest keys by LFU frequency (requires maxmemory-policy allkeys-lfu/volatile-lfu)
   rdb -c hotkey [-o hotkey.csv] [-n 50] dump.rdb
+9. generate statistics overview
+  rdb -c stats [-n 10] dump.rdb
+10. generate statistics overview with filters
+  rdb -c stats -n 10 -regex 'user:*' dump.rdb
 ```
 
 # 转换为 JSON 格式
@@ -485,6 +490,67 @@ database,key,type,size,size_readable,freq
 ```
 
 注意：没有 LFU 信息的 key 会被跳过。如果 RDB 文件不是在 LFU 淘汰策略下生成的，输出将为空。
+
+# 统计概览
+
+`stats` 命令可以一键生成 RDB 文件的统计概览，包括键数量统计、内存占用统计、过期键统计以及 Top-N 大键和热键。
+
+```
+rdb -c stats [-n <top-n>] <source_path>
+```
+
+示例：
+
+```
+rdb -c stats cases/memory.rdb
+```
+
+输出示例：
+
+```
+=== RDB Statistics Overview ===
+File: cases/memory.rdb
+Redis Version:
+RDB Version: 0
+
+--- Key Statistics ---
+Total Keys: 7
+Keys by Type:
+  - hash: 1 (14.3%)
+  - list: 1 (14.3%)
+  - set: 1 (14.3%)
+  - string: 3 (42.9%)
+  - zset: 1 (14.3%)
+Keys by Database:
+  - DB 0: 7 (100.0%)
+
+--- Memory Statistics ---
+Total Memory: 3.4K
+Memory by Type:
+  - string: 2.7K (79.3%)
+  - list: 203B (5.8%)
+  ...
+Memory by Encoding:
+  - quicklist: 203B
+  - string: 2.7K
+  ...
+
+--- Expiration Statistics ---
+Keys with TTL: 0 (0.0%)
+Keys without TTL: 7
+
+--- Top 7 Largest Keys ---
+#1. large (string) - 2.5K
+...
+```
+
+`stats` 命令可以结合过滤器使用：
+
+```
+rdb -c stats -regex 'user:*' cases/memory.rdb
+rdb -c stats -expire 'noexpire' cases/memory.rdb
+rdb -c stats -size '1KB~inf' cases/memory.rdb
+```
 
 # 转换为 AOF 文件
 

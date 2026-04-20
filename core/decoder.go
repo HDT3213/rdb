@@ -604,3 +604,7 @@ func (dec *Decoder) Parse(cb func(object model.RedisObject) bool) (err error) {
 func (dec *Decoder) GetReadCount() int {
 	return dec.readCount
 }
+
+func (dec *Decoder) GetRDBVersion() int {
+	return dec.rdbVersion
+}

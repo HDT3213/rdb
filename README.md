@@ -20,6 +20,7 @@ It provides abilities to:
 - Find the biggest N keys in RDB files
 - Find the hottest N keys by LFU frequency in RDB files
 - Draw FlameGraph to analysis which kind of keys occupied most memory
+- Generate statistics overview for RDB files
 - Customize data usage
 - Generate RDB file
 
@@ -54,9 +55,9 @@ use `rdb` command in terminal, you can see it's manual
 $ rdb
 This is a tool to parse Redis' RDB files
 Options:
-  -c command, including: json/memory/aof/bigkey/hotkey/prefix/flamegraph
+  -c command, including: json/memory/aof/bigkey/hotkey/prefix/flamegraph/stats
   -o output file path
-  -n number of result, using in command: bigkey/hotkey/prefix
+  -n number of result, using in command: bigkey/hotkey/prefix/stats
   -port listen port for flame graph web service
   -sep separator for flamegraph, rdb will separate key by it, default value is ":". 
     supporting multi separators: -sep sep1 -sep sep2 
@@ -94,8 +95,12 @@ parameters between '[' and ']' is optional
   rdb -c prefix [-n 10] [-max-depth 3] -prefix-sep : [-o prefix-report.csv] dump.rdb
 7. draw flamegraph
   rdb -c flamegraph [-port 16379] [-sep :] dump.rdb
-7. get hottest keys by LFU frequency (requires maxmemory-policy allkeys-lfu/volatile-lfu)
+8. get hottest keys by LFU frequency (requires maxmemory-policy allkeys-lfu/volatile-lfu)
   rdb -c hotkey [-o hotkey.csv] [-n 50] dump.rdb
+9. generate statistics overview
+  rdb -c stats [-n 10] dump.rdb
+10. generate statistics overview with filters
+  rdb -c stats -n 10 -regex 'user:*' dump.rdb
 ```
 
 # Convert to Json
@@ -560,6 +565,67 @@ database,key,type,size,size_readable,freq
 ```
 
 Note: Keys without LFU information are skipped. If the RDB file was not generated under LFU eviction policy, the output will be empty.
+
+# Statistics Overview
+
+The `stats` command provides a one-click overview of RDB file statistics, including key counts, memory usage, expiration statistics, and Top-N largest/hottest keys.
+
+```
+rdb -c stats [-n <top-n>] <source_path>
+```
+
+Example:
+
+```
+rdb -c stats cases/memory.rdb
+```
+
+Output example:
+
+```
+=== RDB Statistics Overview ===
+File: cases/memory.rdb
+Redis Version:
+RDB Version: 0
+
+--- Key Statistics ---
+Total Keys: 7
+Keys by Type:
+  - hash: 1 (14.3%)
+  - list: 1 (14.3%)
+  - set: 1 (14.3%)
+  - string: 3 (42.9%)
+  - zset: 1 (14.3%)
+Keys by Database:
+  - DB 0: 7 (100.0%)
+
+--- Memory Statistics ---
+Total Memory: 3.4K
+Memory by Type:
+  - string: 2.7K (79.3%)
+  - list: 203B (5.8%)
+  ...
+Memory by Encoding:
+  - quicklist: 203B
+  - string: 2.7K
+  ...
+
+--- Expiration Statistics ---
+Keys with TTL: 0 (0.0%)
+Keys without TTL: 7
+
+--- Top 7 Largest Keys ---
+#1. large (string) - 2.5K
+...
+```
+
+The `stats` command can be combined with filters:
+
+```
+rdb -c stats -regex 'user:*' cases/memory.rdb
+rdb -c stats -expire 'noexpire' cases/memory.rdb
+rdb -c stats -size '1KB~inf' cases/memory.rdb
+```
 
 # Convert to AOF
 
