@@ -12,9 +12,9 @@ import (
 const help = `
 This is a tool to parse Redis' RDB files
 Options:
-  -c command, including: json/memory/aof/bigkey/hotkey/prefix/flamegraph
+  -c command, including: json/memory/aof/bigkey/hotkey/prefix/flamegraph/stats
   -o output file path
-  -n number of result, using in command: bigkey/hotkey/prefix
+  -n number of result, using in command: bigkey/hotkey/prefix/stats
   -port listen port for flame graph web service
   -sep separator for flamegraph, rdb will separate key by it, default value is ":". 
     supporting multi separators: -sep sep1 -sep sep2 
@@ -52,8 +52,12 @@ parameters between '[' and ']' is optional
   rdb -c prefix [-n 10] [-max-depth 3] -prefix-sep : [-o prefix-report.csv] dump.rdb
 7. draw flamegraph
   rdb -c flamegraph [-port 16379] [-sep :] dump.rdb
-7. get hottest keys by LFU frequency (requires maxmemory-policy allkeys-lfu/volatile-lfu)
+8. get hottest keys by LFU frequency (requires maxmemory-policy allkeys-lfu/volatile-lfu)
   rdb -c hotkey [-o hotkey.csv] [-n 50] dump.rdb
+9. generate statistics overview
+  rdb -c stats [-n 10] dump.rdb
+10. generate statistics overview with filters
+  rdb -c stats -n 10 -regex 'user:*' dump.rdb
 `
 
 type separators []string
@@ -165,6 +169,25 @@ func main() {
 			return
 		}
 		<-make(chan struct{})
+	case "stats":
+		topN := n
+		if topN <= 0 {
+			topN = 10
+		}
+		report, statErr := helper.Stats(src, topN, options...)
+		if statErr != nil {
+			fmt.Printf("error: %v\n", statErr)
+			return
+		}
+		if output != "" {
+			_, statErr = outputFile.WriteString(report.ToText())
+		} else {
+			fmt.Print(report.ToText())
+		}
+		if statErr != nil {
+			fmt.Printf("error: %v\n", statErr)
+			return
+		}
 	default:
 		println("unknown command")
 		return
