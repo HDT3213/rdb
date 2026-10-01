@@ -40,7 +40,7 @@ go install github.com/hdt3213/rdb@latest
 $ rdb
 This is a tool to parse Redis' RDB files
 Options:
-  -c command, including: json/memory/aof/bigkey/hotkey/prefix/flamegraph
+  -c command, including: json/memory/aof/bigkey/hotkey/prefix/flamegraph/streambacklog
   -o output file path
   -n number of result, using in command: bigkey/hotkey/prefix
   -port listen port for flame graph web service
@@ -82,6 +82,8 @@ parameters between '[' and ']' is optional
   rdb -c flamegraph [-port 16379] [-sep :] dump.rdb
 7. get hottest keys by LFU frequency (requires maxmemory-policy allkeys-lfu/volatile-lfu)
   rdb -c hotkey [-o hotkey.csv] [-n 50] dump.rdb
+8. report the pending backlog of every stream consumer group
+  rdb -c streambacklog [-o backlog.csv] dump.rdb
 ```
 
 # 转换为 JSON 格式

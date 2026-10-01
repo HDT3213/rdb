@@ -19,6 +19,7 @@ It provides abilities to:
 - Convert RDB files to Redis Serialization Protocol (or AOF file)
 - Find the biggest N keys in RDB files
 - Find the hottest N keys by LFU frequency in RDB files
+- Report the pending backlog of stream consumer groups
 - Draw FlameGraph to analysis which kind of keys occupied most memory
 - Customize data usage
 - Generate RDB file
@@ -54,7 +55,7 @@ use `rdb` command in terminal, you can see it's manual
 $ rdb
 This is a tool to parse Redis' RDB files
 Options:
-  -c command, including: json/memory/aof/bigkey/hotkey/prefix/flamegraph
+  -c command, including: json/memory/aof/bigkey/hotkey/prefix/flamegraph/streambacklog
   -o output file path
   -n number of result, using in command: bigkey/hotkey/prefix
   -port listen port for flame graph web service
@@ -96,6 +97,8 @@ parameters between '[' and ']' is optional
   rdb -c flamegraph [-port 16379] [-sep :] dump.rdb
 7. get hottest keys by LFU frequency (requires maxmemory-policy allkeys-lfu/volatile-lfu)
   rdb -c hotkey [-o hotkey.csv] [-n 50] dump.rdb
+8. report the pending backlog of every stream consumer group
+  rdb -c streambacklog [-o backlog.csv] dump.rdb
 ```
 
 # Convert to Json
@@ -560,6 +563,33 @@ database,key,type,size,size_readable,freq
 ```
 
 Note: Keys without LFU information are skipped. If the RDB file was not generated under LFU eviction policy, the output will be empty.
+
+# Stream Consumer Group Backlog
+
+For every consumer group of every stream, RDB can report how far the group is behind:
+
+```
+rdb -c streambacklog [-o <output_path>] <source_path>
+```
+
+Example:
+
+```
+rdb -c streambacklog cases/stream_listpacks_1.rdb
+```
+
+The CSV has one row for each consumer that holds pending entries, ordered by group name, then by descending `pending`.
+Pending entries that no consumer holds are collected into one row with an empty `consumer`, and a group without pending entries still gets a single row.
+`pending` is the number of entries the consumer holds, `oldest_delivery_time` and `max_delivery_count` are the smallest delivery time and the largest delivery count among them.
+`undelivered` is the number of messages the group has never been delivered, and `dangling` is the number of its pending entries whose message was deleted or is no longer in the stream.
+The last two columns describe the whole group, so every row of a group carries the same values.
+
+```csv
+database,key,group,consumer,pending,oldest_delivery_time,max_delivery_count,undelivered,dangling
+0,listpack,g1,c1,2,1528516636879,1,144,0
+0,listpack,g1,c2,2,1528516649782,1,144,0
+0,listpack,g4,,0,0,0,0,0
+```
 
 # Convert to AOF
 
