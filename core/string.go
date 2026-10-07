@@ -102,9 +102,7 @@ func (dec *Decoder) readString() ([]byte, error) {
 		}
 	}
 
-	res := make([]byte, length)
-	err = dec.readFull(res)
-	return res, err
+	return dec.readBytes(length)
 }
 
 func (dec *Decoder) readInt16() (int16, error) {
@@ -188,12 +186,14 @@ func (dec *Decoder) readLZF() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	val := make([]byte, inLen)
-	err = dec.readFull(val)
+	val, err := dec.readBytes(inLen)
 	if err != nil {
 		return nil, err
 	}
-	return lzf.Decompress(val, int(inLen), int(outLen))
+	if outLen > math.MaxInt {
+		return nil, fmt.Errorf("lzf output length %d is too large", outLen)
+	}
+	return lzf.Decompress(val, len(val), int(outLen))
 }
 
 func (enc *Encoder) writeLength(value uint64) error {

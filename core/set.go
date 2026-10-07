@@ -15,9 +15,8 @@ func (dec *Decoder) readSet() ([][]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	size := int(size64)
-	values := make([][]byte, 0, size)
-	for i := 0; i < size; i++ {
+	values := make([][]byte, 0, capHint(size64))
+	for i := uint64(0); i < size64; i++ {
 		val, err := dec.readString()
 		if err != nil {
 			return nil, err
@@ -33,6 +32,9 @@ func (dec *Decoder) readIntSet() (result [][]byte, detail *model.IntsetDetail, e
 	if err != nil {
 		return nil, nil, err
 	}
+	if len(buf) < 8 {
+		return nil, nil, fmt.Errorf("intset is too short: %d bytes", len(buf))
+	}
 	sizeBytes := buf[0:4]
 	intSize := int(binary.LittleEndian.Uint32(sizeBytes))
 	if intSize != 2 && intSize != 4 && intSize != 8 {
@@ -40,6 +42,9 @@ func (dec *Decoder) readIntSet() (result [][]byte, detail *model.IntsetDetail, e
 	}
 	lenBytes := buf[4:8]
 	cardinality := binary.LittleEndian.Uint32(lenBytes)
+	if uint64(cardinality)*uint64(intSize) > uint64(len(buf)-8) {
+		return nil, nil, fmt.Errorf("intset cardinality %d does not fit in %d bytes", cardinality, len(buf))
+	}
 	cursor := 8
 	result = make([][]byte, 0, cardinality)
 	for i := uint32(0); i < cardinality; i++ {

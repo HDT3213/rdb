@@ -139,6 +139,9 @@ func (dec *Decoder) readStreamEntryContent(buf []byte, cursor *int, firstId *mod
 	if err != nil {
 		return nil, fmt.Errorf("read stream field number failed: %v", err)
 	}
+	if err = checkCount(fieldNum0, len(buf)); err != nil {
+		return nil, fmt.Errorf("read stream field number failed: %v", err)
+	}
 	masterFieldNum := int(fieldNum0)
 	masterFieldNames := make([]string, masterFieldNum)
 	for i := 0; i < masterFieldNum; i++ {
@@ -154,6 +157,15 @@ func (dec *Decoder) readStreamEntryContent(buf []byte, cursor *int, firstId *mod
 	}
 
 	total := count + deleted
+	if err = checkCount(count, len(buf)); err != nil {
+		return nil, fmt.Errorf("read stream entry count failed: %v", err)
+	}
+	if err = checkCount(deleted, len(buf)); err != nil {
+		return nil, fmt.Errorf("read stream entry deleted count failed: %v", err)
+	}
+	if err = checkCount(total, len(buf)); err != nil {
+		return nil, fmt.Errorf("read stream entry total count failed: %v", err)
+	}
 	msgs := make([]*model.StreamMessage, 0, total)
 	for i := int64(0); i < total; i++ {
 		flag, err := dec.readListPackEntryAsInt(buf, cursor)
@@ -177,6 +189,9 @@ func (dec *Decoder) readStreamEntryContent(buf []byte, cursor *int, firstId *mod
 		if flag&StreamItemFlagSameFields == 0 {
 			fieldNum0, err := dec.readListPackEntryAsInt(buf, cursor)
 			if err != nil {
+				return nil, fmt.Errorf("read stream item field number failed: %v", err)
+			}
+			if err = checkCount(fieldNum0, len(buf)); err != nil {
 				return nil, fmt.Errorf("read stream item field number failed: %v", err)
 			}
 			fieldNum = int(fieldNum0)
@@ -221,7 +236,7 @@ func (dec *Decoder) readStreamGroups(version uint) ([]*model.StreamGroup, error)
 	if err != nil {
 		return nil, err
 	}
-	groups := make([]*model.StreamGroup, 0, int(groupCount))
+	groups := make([]*model.StreamGroup, 0, capHint(groupCount))
 	for i := uint64(0); i < groupCount; i++ {
 		name, _ := dec.readString()
 		if err != nil {
@@ -245,7 +260,7 @@ func (dec *Decoder) readStreamGroups(version uint) ([]*model.StreamGroup, error)
 		if err != nil {
 			return nil, err
 		}
-		pending := make([]*model.StreamNAck, 0, int(pendingCount))
+		pending := make([]*model.StreamNAck, 0, capHint(pendingCount))
 		for j := uint64(0); j < pendingCount; j++ {
 			if err := dec.readFull(dec.buffer); err != nil {
 				return nil, err
@@ -279,7 +294,7 @@ func (dec *Decoder) readStreamGroups(version uint) ([]*model.StreamGroup, error)
 		if err != nil {
 			return nil, err
 		}
-		consumers := make([]*model.StreamConsumer, 0, int(consumerCount))
+		consumers := make([]*model.StreamConsumer, 0, capHint(consumerCount))
 		for j := uint64(0); j < consumerCount; j++ {
 			consumerName, err := dec.readString()
 			if err != nil {
@@ -300,7 +315,7 @@ func (dec *Decoder) readStreamGroups(version uint) ([]*model.StreamGroup, error)
 			if err != nil {
 				return nil, err
 			}
-			consumerPending := make([]*model.StreamId, 0, int(consumerPendingCount))
+			consumerPending := make([]*model.StreamId, 0, capHint(consumerPendingCount))
 			for k := uint64(0); k < consumerPendingCount; k++ {
 				if err := dec.readFull(dec.buffer); err != nil {
 					return nil, err

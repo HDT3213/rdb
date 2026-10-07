@@ -26,9 +26,8 @@ func (dec *Decoder) readList() ([][]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	size := int(size64)
-	values := make([][]byte, 0, size)
-	for i := 0; i < size; i++ {
+	values := make([][]byte, 0, capHint(size64))
+	for i := uint64(0); i < size64; i++ {
 		val, err := dec.readString()
 		if err != nil {
 			return nil, err

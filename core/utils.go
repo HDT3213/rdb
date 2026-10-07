@@ -3,7 +3,9 @@ package core
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
+	"math"
 	"math/rand"
 	"unsafe"
 )
@@ -57,6 +59,69 @@ func (dec *Decoder) readFull(buf []byte) error {
 		return err
 	}
 	dec.readCount += n
+	return nil
+}
+
+// readChunk is the largest length that readBytes allocates before it reads data.
+// A bigger declared length may be false, so readBytes grows the buffer as data arrives.
+const readChunk = 1 << 20
+
+// readBytes reads exactly n bytes from the input.
+// A length up to readChunk is allocated at once. A longer length grows the
+// buffer by doubling, so memory stays near twice the bytes that arrived.
+func (dec *Decoder) readBytes(n uint64) ([]byte, error) {
+	if n <= readChunk {
+		buf := make([]byte, n)
+		if err := dec.readFull(buf); err != nil {
+			return nil, err
+		}
+		return buf, nil
+	}
+	if n > math.MaxInt {
+		return nil, fmt.Errorf("declared length %d is too large", n)
+	}
+	size := int(n)
+	buf := make([]byte, readChunk)
+	if err := dec.readFull(buf); err != nil {
+		return nil, err
+	}
+	for len(buf) < size {
+		next := 2 * len(buf)
+		if next > size || next < 0 {
+			next = size
+		}
+		grown := make([]byte, next)
+		copy(grown, buf)
+		if err := dec.readFull(grown[len(buf):]); err != nil {
+			// Part of the value already arrived, so the end of the input here is a truncated value.
+			if err == io.EOF {
+				err = io.ErrUnexpectedEOF
+			}
+			return nil, err
+		}
+		buf = grown
+	}
+	return buf, nil
+}
+
+// maxCapHint limits the initial capacity taken from a count in the file.
+const maxCapHint = 1024
+
+// capHint returns an initial capacity for a count read from the file.
+// The count is not trusted, so append grows the slice when real data arrives.
+func capHint(n uint64) int {
+	if n > maxCapHint {
+		return maxCapHint
+	}
+	return int(n)
+}
+
+// checkCount rejects a count that cannot fit in a buffer of size bytes.
+// Each counted item uses at least one byte.
+func checkCount(count int64, size int) error {
+	if count < 0 || count > int64(size) {
+		return fmt.Errorf("count %d does not fit in a buffer of %d bytes", count, size)
+	}
 	return nil
 }
 

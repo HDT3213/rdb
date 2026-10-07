@@ -1,6 +1,7 @@
 package lzf
 
 import (
+	"math"
 	"math/rand"
 	"strings"
 	"testing"
@@ -34,5 +35,26 @@ func TestLzf(t *testing.T) {
 			t.Error("wrong decompressed")
 			return
 		}
+	}
+}
+
+func TestDecompressRejectsImpossibleOutLen(t *testing.T) {
+	// one literal byte cannot expand to math.MaxInt bytes
+	if _, err := Decompress([]byte{0x00}, 1, math.MaxInt); err == nil {
+		t.Fatal("expect an error")
+	}
+	// the largest valid ratio is accepted
+	if _, err := Decompress([]byte{0x00, 'a'}, 2, 88*2); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Decompress([]byte{0x00, 'a'}, 2, 88*2+1); err == nil {
+		t.Fatal("expect an error")
+	}
+}
+
+func TestDecompressEmptyInput(t *testing.T) {
+	out, err := Decompress(nil, 0, 0)
+	if err != nil || out != nil {
+		t.Fatalf("got %v, %v", out, err)
 	}
 }

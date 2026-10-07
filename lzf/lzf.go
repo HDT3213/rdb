@@ -8,17 +8,27 @@ const (
 	maxLit          = 1 << 5
 	maxOff          = 1 << 13
 	maxRef          = (1 << 8) + (1 << 3)
+	maxRatio        = maxRef / 3
 )
 
 var (
 	errInsufficientBuffer = errors.New("insufficient buffer")
 	errDataCorruption     = errors.New("data corruption")
+	errInvalidOutLen      = errors.New("output length is impossible for the input")
 )
 
 // using https://github.com/zhuyie/golzf according to MIT license
 // Decompress decompress lzf compressed data
 func Decompress(input []byte, inLen int, outLen int) ([]byte, error) {
 	input = input[:inLen]
+	if len(input) == 0 {
+		return nil, nil
+	}
+	// A back reference emits at most 264 bytes from 3 input bytes, and a literal
+	// run emits fewer bytes than it consumes, so valid data never exceeds 88x.
+	if outLen < 0 || int64(outLen) > int64(maxRatio)*int64(len(input)) {
+		return nil, errInvalidOutLen
+	}
 	output := make([]byte, outLen)
 	var inputIndex, outputIndex int
 

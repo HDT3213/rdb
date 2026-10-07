@@ -534,7 +534,7 @@ func (dec *Decoder) parse(cb func(object model.RedisObject) bool) error {
 					return err
 				}
 				var slot_from, slot_to uint64
-				ranges := make([]string, num_slot_ranges)
+				ranges := make([]string, 0, capHint(num_slot_ranges))
 				for i := uint64(0); i < num_slot_ranges; i++ {
 					slot_from, _, err = dec.readLength()
 					if err == nil {
@@ -543,7 +543,7 @@ func (dec *Decoder) parse(cb func(object model.RedisObject) bool) error {
 					if err != nil {
 						return err
 					}
-					ranges[i] = fmt.Sprintf("%d-%d", slot_from, slot_to)
+					ranges = append(ranges, fmt.Sprintf("%d-%d", slot_from, slot_to))
 				}
 				_, _ = job, ranges // safe to skip
 			} else {

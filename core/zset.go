@@ -11,7 +11,7 @@ func (dec *Decoder) readZSet(zset2 bool) ([]*model.ZSetEntry, error) {
 	if err != nil {
 		return nil, err
 	}
-	entries := make([]*model.ZSetEntry, 0, int(length))
+	entries := make([]*model.ZSetEntry, 0, capHint(length))
 	for i := uint64(0); i < length; i++ {
 		member, err := dec.readString()
 		if err != nil {
