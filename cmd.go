@@ -32,6 +32,7 @@ Options:
     1. '1KB~1MB' get keys with size in range [1KB, 1MB]
     2. '10MB~inf' magic variable 'inf' represents the Infinity
     3. '1024~10KB' get keys with size in range [0Bytes, 10KB]
+  -sample sample rate between (0, 1] for sampling keys
   -concurrent The number of concurrent json converters. 4 by default.
   -show-global-meta Show global meta likes redis-verion/ctime/functions
   -no-expired filter expired keys(deprecated, please use 'expire' option)
@@ -82,6 +83,7 @@ func main() {
 	var concurrent int
 	var showGlobalMeta bool
 	var prefixSeps separators
+	var sample float64
 	var err error
 	flagSet.StringVar(&cmd, "c", "", "command for rdb: json")
 	flagSet.StringVar(&output, "o", "", "output file path")
@@ -93,6 +95,7 @@ func main() {
 	flagSet.StringVar(&regexExpr, "regex", "", "regex expression")
 	flagSet.StringVar(&expirationExpr, "expire", "", "expiration filter expression")
 	flagSet.StringVar(&sizeExpr, "size", "", "size filter expression")
+	flagSet.Float64Var(&sample, "sample", 0, "sample rate between (0, 1] for sampling keys")
 	flagSet.BoolVar(&noExpired, "no-expired", false, "filter expired keys(deprecated, please use expire)")
 	flagSet.Var(&prefixSeps, "prefix-sep", "separator for prefix analysis (flat-map mode, constant memory)")
 	flagSet.BoolVar(&showGlobalMeta, "show-global-meta", false, "Show global meta likes redis-verion/ctime/functions")
@@ -124,6 +127,15 @@ func main() {
 	if sizeExpr != "" {
 		options = append(options, helper.WithSizeOption(sizeExpr))
 	}
+	var hasSample bool
+	flagSet.Visit(func(f *flag.Flag) {
+		if f.Name == "sample" {
+			hasSample = true
+		}
+	})
+	if hasSample {
+		options = append(options, helper.WithSampleOption(sample))
+	}
 	if showGlobalMeta {
 		options = append(options, helper.WithGlobalMeta())
 	}
@@ -147,7 +159,7 @@ func main() {
 	case "memory":
 		err = helper.MemoryProfile(src, output, options...)
 	case "aof":
-		err = helper.ToAOF(src, output, options)
+		err = helper.ToAOF(src, output, options...)
 	case "bigkey":
 		err = helper.FindBiggestKeys(src, n, outputFile, options...)
 	case "hotkey":

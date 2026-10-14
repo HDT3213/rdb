@@ -60,6 +60,7 @@ Options:
     1. '1KB~1MB' get keys with size in range [1KB, 1MB]
     2. '10MB~inf' magic variable 'inf' represents the Infinity
     3. '1024~10KB' get keys with size in range [0Bytes, 10KB]
+  -sample sample rate between (0, 1] for sampling keys
   -concurrent The number of concurrent json converters. 4 by default.
   -show-global-meta Show global meta likes redis-verion/ctime/functions
   -no-expired filter expired keys(deprecated, please use 'expire' option)
@@ -542,6 +543,19 @@ rdb -c json -o dump.json -size 1KB~1MB cases/memory.rdb
 
 # 过滤大小大于等于 10MB 的键
 rdb -c memory -o memory.csv -size 10MB~inf cases/memory.rdb
+```
+
+# 抽样过滤器
+
+`-sample` 参数可以配置对大型 RDB 文件中的键进行抽样处理，取值范围为 `(0, 1]`。
+
+示例：
+```bash
+# 抽样 10% 的键生成 JSON
+rdb -c json -o dump.json -sample 0.1 dump.rdb
+
+# 抽样 20% 的键生成内存报告
+rdb -c memory -o memory.csv -sample 0.2 dump.rdb
 ```
 
 # Expiration 过滤器
