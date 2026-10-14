@@ -69,6 +69,32 @@ func TestCmd(t *testing.T) {
 		t.Error("command prefix with prefix-sep failed")
 	}
 
+	os.Args = []string{"", "-c", "memory", "-sample", "0.5", "-o", "tmp/memory_sample.csv", "cases/memory.rdb"}
+	main()
+	if f, _ := os.Stat("tmp/memory_sample.csv"); f == nil {
+		t.Error("command memory with sample failed")
+	}
+
+	os.Args = []string{"", "-c", "json", "-sample", "0.5", "-o", "tmp/cmd_sample.json", "cases/memory.rdb"}
+	main()
+	if f, _ := os.Stat("tmp/cmd_sample.json"); f == nil {
+		t.Error("command json with sample failed")
+	}
+
+	os.Args = []string{"", "-c", "bigkey", "-sample", "0.5", "-n", "10", "-o", "tmp/bigkey_sample.csv", "cases/memory.rdb"}
+	main()
+	if f, _ := os.Stat("tmp/bigkey_sample.csv"); f == nil {
+		t.Error("command bigkey with sample failed")
+	}
+
+	// invalid sample rate commands
+	os.Args = []string{"", "-c", "memory", "-sample", "-0.1", "-o", "tmp/memory_invalid1.csv", "cases/memory.rdb"}
+	main()
+	os.Args = []string{"", "-c", "memory", "-sample", "0", "-o", "tmp/memory_invalid2.csv", "cases/memory.rdb"}
+	main()
+	os.Args = []string{"", "-c", "memory", "-sample", "1.5", "-o", "tmp/memory_invalid3.csv", "cases/memory.rdb"}
+	main()
+
 	// test error command line
 	os.Args = []string{"", "-c", "json", "-o", "tmp/output", "/none/a"}
 	main()

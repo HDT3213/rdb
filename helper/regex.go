@@ -211,8 +211,15 @@ func wrapDecoder(dec decoder, options ...interface{}) (decoder, error) {
 	var expirationOpt ExpirationOption
 	var sizeOpt SizeOption
 	var globalMetaOpt GlobalMetaOption
+	var sampleOpt *SampleOption
 	for _, opt := range options {
 		switch o := opt.(type) {
+		case []interface{}:
+			var err error
+			dec, err = wrapDecoder(dec, o...)
+			if err != nil {
+				return nil, err
+			}
 		case RegexOption:
 			regexOpt = o
 		case NoExpiredOption:
@@ -223,6 +230,14 @@ func wrapDecoder(dec decoder, options ...interface{}) (decoder, error) {
 			sizeOpt = o
 		case GlobalMetaOption:
 			globalMetaOpt = o
+		case SampleOption:
+			sampleOpt = &o
+		}
+	}
+	if sampleOpt != nil {
+		rate := float64(*sampleOpt)
+		if rate <= 0 || rate > 1 {
+			return nil, fmt.Errorf("illegal sample rate: %v, should be in range (0, 1]", rate)
 		}
 	}
 	if globalMetaOpt {
@@ -272,6 +287,12 @@ func wrapDecoder(dec decoder, options ...interface{}) (decoder, error) {
 		dec = &sizeDecoder{
 			dec:       dec,
 			sizeRange: rng,
+		}
+	}
+	if sampleOpt != nil {
+		rate := float64(*sampleOpt)
+		if rate < 1.0 {
+			dec = newSampleDecoder(dec, rate)
 		}
 	}
 	return dec, nil

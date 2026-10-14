@@ -74,6 +74,7 @@ Options:
     1. '1KB~1MB' get keys with size in range [1KB, 1MB]
     2. '10MB~inf' magic variable 'inf' represents the Infinity
     3. '1024~10KB' get keys with size in range [0Bytes, 10KB]
+  -sample sample rate between (0, 1] for sampling keys
   -concurrent The number of concurrent json converters. 4 by default.
   -show-global-meta Show global meta likes redis-verion/ctime/functions
   -no-expired filter expired keys(deprecated, please use 'expire' option)
@@ -616,6 +617,19 @@ rdb -c json -o dump.json -size 1KB~1MB cases/memory.rdb
 
 # Keys sized greater than or equal to 10MB
 rdb -c memory -o memory.csv -size 10MB~inf cases/memory.rdb
+```
+
+# Sample Filter
+
+The `-sample` parameter can be configured to sample keys from large RDB files with a sampling rate in `(0, 1]`.
+
+Examples:
+```bash
+# Sample 10% of keys to generate JSON
+rdb -c json -o dump.json -sample 0.1 dump.rdb
+
+# Sample 20% of keys to generate memory report
+rdb -c memory -o memory.csv -sample 0.2 dump.rdb
 ```
 
 # Expiration Filter
